@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>生命游戏</title>
+<style>
+    .container {
+        width: 950px;
+        margin: 0 auto;
+    }
+    .grid-container {
+        display: grid;
+        grid-template-columns: repeat(50, 10px);
+        grid-template-rows: repeat(50, 10px);
+        gap: 0px;
+        width: 950px;
+        background-color: #ddd;
+    }
+    .cell {
+        width: 10px;
+        height: 10px;
+        background-color: #fff;
+    }
+    #rules {
+        position: relative;
+        top: -500px;
+        left: 510px;
+    }
+    #rules p {
+        width: 450px;
+        line-height: 26px;
+        word-wrap: break-word;
+    }
+</style>
+</head>
+<body>
+<div class="container">
+    <div id="rounds">第1轮演化</div>
+    <div class="grid-container" id="gridContainer"></div>
+    <div id="rules">
+        <h4>康威生命游戏 Conway's Game of Life</h4>
+        <p>该游戏是英国数学家约翰·何顿·康威 John Horton Conway在1970年发明的。</p>
+        <p>规则如下：</p>
+        <p>1. 如果一个格子周围有3个格子为白，则该格子为白；</p>
+        <p>2. 如果一个格子周围有2个格子为白，则该格子颜色不变；</p>
+        <p>3. 如果一个格子周围白色格子少于2个，则该格子为黑；</p>
+        <p>4. 如果一个格子周围有超过3个格子为白，则该格子为黑。</p>
+        <button onclick="window.location.reload()">演化</button>
+    </div>
+</div>
+
+<script src="../js/stack.js"></script>
+<script>
+    const stack = new Stack()
+    rounds = 0
+    timer = null
+    // 创建网格
+    const gridContainer = document.getElementById('gridContainer')
+    const gridSize = 50
+    const grid = createGrid(gridSize)
+
+    // 初始化网格状态
+    randomizeGrid(grid)
+
+    // 显示网格
+    displayGrid(grid)
+
+    // 演化函数
+    function evolve() {
+        const newGrid = createGrid(gridSize);
+        for (let i = 0; i < gridSize; i++) {
+            for (let j = 0; j < gridSize; j++) {
+                const neighbors = countNeighbors(grid, i, j)
+                if (neighbors === 3) {
+                    newGrid[i][j] = 0
+                }
+                if (neighbors === 2) {
+                    newGrid[i][j] = grid[i][j]
+                }
+                if (neighbors < 2 || neighbors > 3) {
+                    newGrid[i][j] = 1
+                }
+            }
+        }
+        copyGrid(newGrid, grid)
+        displayGrid(grid)
+        if (timer) {
+            rounds++
+        }
+        document.getElementById('rounds').innerHTML = `第 ${rounds} 轮演化`
+        if (stack.size() < 16) {
+            stack.push(newGrid)
+        } else {
+            for (let i = 0; i < stack.size(); i++) {
+                let lastGrid = stack.pop()
+                if (newGrid.toString() === lastGrid.toString()) {
+                    timer = null
+                }
+            }
+        }
+        // if (rounds === 500) {
+        //     clearInterval(timer)
+        // }
+    }
+
+    // 创建空网格
+    function createGrid(size) {
+        return Array.from({ length: size }, () => Array.from({ length: size }, () => 0))
+    }
+
+    // 随机初始化网格
+    function randomizeGrid(grid) {
+        for (let i = 0; i < grid.length; i++) {
+            for (let j = 0; j < grid[i].length; j++) {
+                grid[i][j] = Math.random() > 0.5 ? 0 : 1
+            }
+        }
+    }
+
+    // 统计某个格子周围的白色格子数量
+    function countNeighbors(grid, x, y) {
+        let count = 0;
+        for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+                if (i === 0 && j === 0) continue;
+                const newX = x + i;
+                const newY = y + j;
+                if (newX >= 0 && newX < grid.length && newY >= 0 && newY < grid[0].length) {
+                    if (grid[newX][newY] === 0) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    // 复制网格状态
+    function copyGrid(source, destination) {
+        for (let i = 0; i < source.length; i++) {
+            for (let j = 0; j < source[i].length; j++) {
+                destination[i][j] = source[i][j];
+            }
+        }
+    }
+
+    // 显示网格
+    function displayGrid(grid) {
+        gridContainer.innerHTML = '';
+        grid.forEach(row => {
+            row.forEach(cell => {
+                const cellElement = document.createElement('div');
+                cellElement.className = 'cell';
+                if (cell === 1) {
+                    cellElement.style.backgroundColor = '#000';
+                }
+                gridContainer.appendChild(cellElement);
+            });
+        });
+    }
+
+    // 自动演化
+    timer = setInterval(evolve, 100);
+</script>
+
+</body>
+</html>
