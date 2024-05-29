@@ -7,6 +7,7 @@
 <style>
     .container {
         width: 950px;
+        height: 521px;
         margin: 0 auto;
     }
     .grid-container {
@@ -35,23 +36,43 @@
 </style>
 </head>
 <body>
-<div class="container">
+<div id="container" class="container">
     <div id="rounds">第1轮演化</div>
     <div class="grid-container" id="gridContainer"></div>
     <div id="rules">
         <h4>康威生命游戏 Conway's Game of Life</h4>
         <p>该游戏是英国数学家约翰·何顿·康威 John Horton Conway在1970年发明的。</p>
         <p>规则如下：</p>
-        <p>1. 如果一个格子周围有3个格子为白，则该格子为白；</p>
-        <p>2. 如果一个格子周围有2个格子为白，则该格子颜色不变；</p>
+        <p>1. 如果一个格子周围白色格子只有3个，则该格子为白；</p>
+        <p>2. 如果一个格子周围白色格子只有2个，格子颜色不变；</p>
         <p>3. 如果一个格子周围白色格子少于2个，则该格子为黑；</p>
-        <p>4. 如果一个格子周围有超过3个格子为白，则该格子为黑。</p>
-        <button onclick="window.location.reload()">演化</button>
+        <p>4. 如果一个格子周围白色鸽子超过3个，则该格子为黑。</p>
+        <button id="evolveBtn" onclick="window.location.reload()">重新演化</button>
+        <button id="saveBtn">保存结果</button>
     </div>
 </div>
 
+<script src="../js/html2canvas.min.js"></script>
 <script src="../js/stack.js"></script>
 <script>
+    document.getElementById('saveBtn').addEventListener('click', () => {
+        hideBtn('none')
+        html2canvas(document.getElementById('container')).then(canvas => {
+            // 生成当前时间戳
+            let timestamp = new Date().toISOString().replace(/[:.]/g, '')
+            // 将canvas内容转换为图片链接
+            let link = document.createElement('a')
+            link.href = canvas.toDataURL('image/png')
+            link.download = `content-${timestamp}.png`
+            link.click()
+        })
+        setTimeout(() => {
+            hideBtn('')
+        }, 1000)
+    })
+    const evolveBtn = document.getElementById('evolveBtn')
+    const saveBtn = document.getElementById('saveBtn')
+    hideBtn('none')
     const stack = new Stack()
     rounds = 0
     timer = null
@@ -96,12 +117,10 @@
                 let lastGrid = stack.pop()
                 if (newGrid.toString() === lastGrid.toString()) {
                     timer = null
+                    hideBtn('')
                 }
             }
         }
-        // if (rounds === 500) {
-        //     clearInterval(timer)
-        // }
     }
 
     // 创建空网格
@@ -158,6 +177,11 @@
                 gridContainer.appendChild(cellElement);
             });
         });
+    }
+
+    function hideBtn(show='none') {
+        evolveBtn.style.display = show
+        saveBtn.style.display = show
     }
 
     // 自动演化
