@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>滑动条挑战</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #6ee7b7, #3b82f6);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        #targetValue {
+            font-size: 1.3rem;
+            color: #ef4444;
+            font-weight: bold;
+        }
+        #slider-container {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 1rem;
+            padding: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 90%;
+            max-width: 600px;
+            backdrop-filter: blur(10px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #slider {
+            width: 100%;
+            height: 20px;
+            background: linear-gradient(to right, rgba(59, 130, 246, 0.4), rgba(34, 197, 94, 0.4)); /* 更透明的滑轨渐进色 */
+            border-radius: 10px;
+            position: relative;
+            margin: 1rem 0;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15), inset 0 -1px 2px rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(5px);
+        }
+        /* 添加目标标记样式 */
+        #target-marker {
+            position: absolute;
+            top: -10px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-top: 8px solid #ef4444; /* 红色倒三角 */
+            transform: translateX(-50%); /* 居中对齐 */
+            z-index: 1;
+        }
+        #slider-bar {
+            width: 23px;
+            height: 23px; /* 确保是圆形 */
+            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.9), rgba(195, 192, 255, 0.4), rgba(59, 130, 246, 0.3)); /* 玻璃球渐变效果 */
+            position: absolute;
+            top: -3px;
+            border-radius: 50%; /* 完全圆形 */
+            transition: transform 0.05s linear;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.7), 0 2px 5px rgba(0, 0, 0, 0.8);
+            transform-origin: center;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            overflow: hidden;
+            z-index: 2;
+        }
+        #slider-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60%;
+            background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0));
+            border-radius: 50% 50% 0 0;
+        }
+        #slider-bar::before {
+            content: '';
+            position: absolute;
+            bottom: 10%;
+            right: 10%;
+            width: 30%;
+            height: 30%;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            filter: blur(1px);
+        }
+        #bonus {
+            margin-top: 0.5rem;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+        /* 添加挑战倒计时样式 */
+        #challenge-timer {
+            font-size: 1.2rem;
+            color: green;
+            font-weight: bold;
+            margin-top: 0.5rem;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            from { opacity: 0.7; }
+            to { opacity: 1; }
+        }
+        #stop-button {
+            background: #ef4444;
+            color: white;
+            width: 120px; /* 固定宽度 */
+            height: 48px; /* 固定高度 */
+            border-radius: 0.5rem;
+            font-weight: bold;
+            font-size: 1rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 1rem;
+            transition: transform 0.2s, background 0.3s, opacity 0.3s;
+        }
+        #stop-button:hover:not(:disabled) {
+            background: #dc2626;
+            transform: scale(1.0);
+        }
+        #stop-button:active:not(:disabled) {
+            transform: scale(0.95);
+        }
+        #stop-button:disabled {
+            background: #f87171;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        #result {
+            font-size: 1.2rem;
+            color: #1f2937;
+            font-weight: bold;
+            opacity: 1; /* 始终可见 */
+            display: block;
+            text-align: center;
+            margin-bottom: 0.8rem; /* 调整与滑块的间距 */
+            min-width: 120px; /* 固定最小宽度 */
+        }
+        @media (max-width: 640px) {
+            #slider-container {
+                padding: 1.2rem;
+            }
+            #result {
+                font-size: 1.2rem;
+                min-width: 100px;
+            }
+            #stop-button {
+                width: 100px;
+                height: 40px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="slider-container">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">滑动条挑战</h1>
+        <h3 id="targetValue" class="text-xl font-bold mb-1"></h3>
+        <p class="text-gray-600 mb-2">点击【停止】，滑块将停在随机位置，越接近目标值得分越高！</p>
+        <div id="result"></div>
+        <div id="slider">
+            <div id="target-marker"></div>
+            <div id="slider-bar"></div>
+        </div>
+        <div id="challenge-timer"></div>
+        <div id="bonus"></div>
+        <button id="stop-button">停止</button>
+    </div>
+
+    <script>
+        const slider = document.getElementById('slider');
+        const sliderBar = document.getElementById('slider-bar');
+        const stopButton = document.getElementById('stop-button');
+        const result = document.getElementById('result');
+        const bonusDiv = document.getElementById('bonus');
+        
+        // 初始计算最大位置
+        let maxPosition = slider.offsetWidth - sliderBar.offsetWidth;
+        
+        // 初始化滑块位置，确保从最左侧开始
+        sliderBar.style.left = '0px';
+        
+        const SPEED = 5;
+        const CD = 3;
+
+        // 添加挑战倒计时变量
+        const CHALLENGE_TIME = 10; // 10秒挑战时间
+        let challengeTimer = 0;
+        let challengeTimerInterval = null;
+        const challengeTimerElement = document.getElementById('challenge-timer');
+        
+        let position = 0;
+        let speed = SPEED;
+        let isMoving = true;
+        let direction = 1;
+        let targetValue = Math.round(Math.random() * 100); // 随机目标值（0-100%）
+        let timeout = false;
+
+        // 添加窗口大小变化监听器，更新maxPosition
+        window.addEventListener('resize', function() {
+            // 重新计算最大位置
+            maxPosition = slider.offsetWidth - sliderBar.offsetWidth;
+            
+            // 如果当前位置超出新的最大位置，调整位置
+            if (position > maxPosition) {
+                position = maxPosition;
+                sliderBar.style.left = `${position}px`;
+            }
+        });
+
+        // 初始隐藏停止按钮
+        stopButton.style.display = 'none';
+        // 在结果区域显示倒计时
+        result.textContent = `准备开始：${CD}`;
+        
+        // 倒计时函数
+        let countdown = CD;
+        const countdownTimer = setInterval(() => {
+            countdown--;
+            if (countdown > 0) {
+                result.textContent = `准备开始：${countdown}`;
+            } else {
+                clearInterval(countdownTimer);
+                result.textContent = `滑块位置：00.00%`;
+                stopButton.style.display = 'flex'; // 显示停止按钮
+
+                startChallengeTimer();  // 启动挑战倒计时
+            }
+        }, 1000);
+
+        function startChallengeTimer() {
+            // 初始化挑战倒计时
+            challengeTimer = CHALLENGE_TIME;
+            challengeTimerElement.textContent = `挑战倒计时：${challengeTimer}秒`;
+            challengeTimerElement.style.display = 'block';
+            
+            // 清除之前的计时器（如果有）
+            if (challengeTimerInterval) {
+                clearInterval(challengeTimerInterval);
+            }
+            
+            // 启动新的计时器
+            challengeTimerInterval = setInterval(() => {
+                challengeTimer--;
+                challengeTimerElement.textContent = `挑战倒计时：${challengeTimer}秒`;
+                
+                // 当倒计时结束时
+                if (challengeTimer <= 0) {
+                    clearInterval(challengeTimerInterval);
+                    
+                    // 如果用户还没有点击停止按钮
+                    if (isMoving) {
+                        isMoving = false;
+                        stopButton.disabled = true;
+                        // 添加超时提示
+                        timeout = true;
+                    }
+                }
+                
+                // 当倒计时小于等于3秒时，改变颜色并加快闪烁
+                if (challengeTimer <= 3) {
+                    challengeTimerElement.style.color = '#dc2626';
+                    challengeTimerElement.style.animation = 'pulse 0.5s infinite alternate';
+                }
+            }, 1000);
+        }
+
+        function showTargetValue() {
+            const targetValueElement = document.getElementById('targetValue');
+            targetValueElement.textContent = `目标值：${targetValue}%`;
+            
+            // 更新目标标记位置
+            const targetMarker = document.getElementById('target-marker');
+            const targetPosition = (targetValue / 100) * slider.offsetWidth;
+            targetMarker.style.left = `${targetPosition}px`;
+        }
+        showTargetValue();
+
+        function formatPosition(value, stop) {
+            if (Math.abs(value - 100) < 0.01) {
+                if (stop) {
+                    return '100%'; // 精确到100%时显示无小数
+                }
+                return '99.99%'; // 精确到100%时显示无小数
+            }
+            const fixedValue = value.toFixed(2); // 保留2位小数
+            let integerPart = Math.floor(value).toString()
+            if (!stop) {
+                integerPart = integerPart.padStart(2, '0'); // 整数部分补0到2位
+            }
+            const decimalPart = fixedValue.split('.')[1]; // 小数部分
+            return `${integerPart}.${decimalPart}%`; // 格式为XX.XX%
+        }
+
+        function getBounusValue(currentValue, targetValue) {
+            let deltaValue = Math.abs(currentValue - targetValue);
+            return Math.floor(Math.max(0, 100 * (1 - deltaValue / 50)));
+        }
+
+        function showBonus(bonus) {
+            let color = 'black';
+            if (bonus > 80) {
+                color = 'green';
+            } else if (bonus > 60) {
+                color = 'darkorange';
+            } else {
+                color = 'red';
+            }
+            let html = `<p>挑战得分: <span style="color: ${color}">${bonus}分</span></p>`
+            if (timeout) {
+                html = `<p>挑战得分: <span style="color: red">0分</span>（超时）</p>`;
+            }
+            bonusDiv.innerHTML = html;
+            bonusDiv.style.display = 'block'; // 显示挑战得分
+        }
+
+        function animateSlider() {
+            // 确保每帧都重新计算最大位置，以适应可能的窗口大小变化
+            maxPosition = slider.offsetWidth - sliderBar.offsetWidth;
+            
+            const targetPosition = (targetValue / 100) * maxPosition;
+
+            // 实时更新滑块位置显示
+            const currentValue = (position / maxPosition) * 100;
+            // 只有倒计时结束后才更新位置显示
+            if (countdown <= 0) {
+                showTargetValue();
+                result.textContent = `滑块位置：${formatPosition(currentValue)}`;
+            }
+
+            if (!isMoving) {
+                if (stopTimer > 0) {
+                    // 匀速减慢直到停止
+                    const decelerationRate = initialSpeed / (STOP_DURATION / 16); // 每帧减少的速度
+                    currentSpeed -= decelerationRate;
+                    
+                    // 确保速度不会变为负数
+                    if (currentSpeed < 0) currentSpeed = 0;
+                    
+                    // 按当前速度和方向移动
+                    position += currentSpeed * direction;
+                    
+                    // 检查是否到达边界
+                    if (position >= maxPosition) {
+                        position = maxPosition;
+                        direction = -1;
+                    } else if (position <= 0) {
+                        position = 0;
+                        direction = 1;
+                    }
+                    // 更新停止计时器
+                    stopTimer -= 16;
+                    let bonus = getBounusValue(currentValue, targetValue);
+                    showBonus(bonus);
+                } else {
+                    // 完全停止
+                    const currentValue = (position / maxPosition) * 100;
+                    //targetValue = currentValue;
+                    let bonus = getBounusValue(currentValue, targetValue);
+                    showBonus(bonus);
+
+                    // 显示最终位置
+                    result.textContent = `滑块位置：${formatPosition(currentValue, true)}`;
+                    stopButton.textContent = '再来一次';
+                    stopButton.disabled = false; // 重新启用按钮
+                    // 重置挑战倒计时元素
+                    challengeTimerElement.style.display = 'none';
+                    challengeTimerElement.style.color = 'green';
+                    challengeTimerElement.style.animation = 'pulse 1s infinite alternate';
+                    return;
+                }
+            } else {
+                // 正常移动
+                position += speed * direction;
+
+                if (position >= maxPosition) {
+                    position = maxPosition;
+                    direction = -1;
+                } else if (position <= 0) {
+                    position = 0;
+                    direction = 1;
+                }
+            }
+    
+            // 确保位置不会超出边界
+            if (position > maxPosition) {
+                position = maxPosition;
+            } else if (position < 0) {
+                position = 0;
+            }
+    
+            // 更新滑块位置
+            sliderBar.style.left = `${position}px`;
+            
+            requestAnimationFrame(animateSlider);
+        }
+
+        // 添加停止计时器变量
+        let stopTimer = 0;
+        let STOP_DURATION = 1000; // 默认1秒停止时间，将被随机值替换
+        let initialPosition = 0; // 记录点击停止时的初始位置
+        let initialSpeed = 0; // 记录点击停止时的初始速度
+        let currentSpeed = 0; // 当前速度
+
+        // 停止按钮点击事件
+        stopButton.addEventListener('click', () => {
+            if (isMoving) {
+                stopButton.disabled = true; // 禁用按钮直到停止完成
+                isMoving = false;
+
+                // 清除挑战倒计时
+                if (challengeTimerInterval) {
+                    clearInterval(challengeTimerInterval);
+                    challengeTimerElement.style.display = 'none';
+                }
+
+                // 生成1-10秒之间的随机停止时间
+                STOP_DURATION = Math.floor(Math.random() * 4000 + 1000); // 1000-5000毫秒
+                
+                // 记录点击停止时的初始位置和速度
+                initialPosition = position;
+                initialSpeed = speed;
+                currentSpeed = speed;
+                
+                // 设置停止计时器
+                stopTimer = STOP_DURATION;
+            } else {
+                // 重新开始时，先隐藏按钮并开始倒计时
+                stopButton.style.display = 'none';
+                bonusDiv.style.display = 'none'; // 隐藏挑战得分
+                position = 0;
+                speed = SPEED;
+                isMoving = true;
+                direction = 1;
+                targetValue = Math.round(Math.random() * 100); // 随机目标值（0-100%）
+                stopTimer = 0; // 重置停止计时器
+                timeout = false;  // 重置超时状态
+                
+                animateSlider();
+                // 重新开始倒计时
+                countdown = CD;
+                result.textContent = `准备开始：${countdown}`;
+                
+                const newCountdownTimer = setInterval(() => {
+                    countdown--;
+                    if (countdown > 0) {
+                        result.textContent = `准备开始：${countdown}`;
+                    } else {
+                        clearInterval(newCountdownTimer);
+                        result.textContent = `滑块位置：00.00%`;
+                        stopButton.style.display = 'flex'; // 显示停止按钮
+                        stopButton.textContent = '停止';
+                        stopButton.disabled = false; // 确保按钮启用
+
+                        startChallengeTimer();  // 启动新的挑战倒计时
+                    }
+                }, 1000);
+            }
+        });
+
+        animateSlider();
+    </script>
+</body>
+</html>
