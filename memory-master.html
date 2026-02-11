@@ -421,7 +421,7 @@
         let html = `<div class="gallery-grid">`;
         memoryData.forEach((item, index) => {
             const num = parseIndex(item);
-            const imgContent = `<img src="res/memory/split_${num}.png" width="100%" class="gallery-img">`;
+            const imgContent = `<img src="res/memory/split_${num}.jpg" width="100%" class="gallery-img">`;
             html += `
                 <div class="gallery-card" onclick="setMode('sequential', ${index})">
                     <span>${imgContent}</span>
@@ -461,7 +461,7 @@
         // 如果你有图片，请把下面的imgContent 改为 <img src="<res-path>/${item.id}.jpg" style="max-width:100%; max-height:100%">
         // st imgContent = `<span style="font-size:3rem; color:rgba(255,255,255,0.5)">🖼️</span>`;
         const num = parseIndex(item);
-        const imgContent = `<img src="res/memory/split_${num}.png" width="100%">`;
+        const imgContent = `<img src="res/memory/split_${num}.jpg" width="100%">`;
 
         let html = `
             <div class="learning-card" onclick="this.classList.toggle('flipped')">
@@ -537,7 +537,7 @@
             if (item.type === 'name') {
                 item.id = item.matchId;
                 num = parseIndex(item);
-                imgContent = `<img src="res/memory/split_${num}.png" width="100px" style="display:none"`;
+                imgContent = `<img src="res/memory/split_${num}.jpg" width="100px" style="display:none"`;
             } else {
                 imgContent = item.val;
             }

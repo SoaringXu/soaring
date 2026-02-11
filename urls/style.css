@@ -1,0 +1,116 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f0f0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+.container {
+    display: flex;
+    gap: 20px;
+    background-color: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.game-info {
+    width: 200px;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+h2 {
+    font-size: 18px;
+    margin-bottom: 10px;
+    color: #555;
+}
+
+.score-container {
+    margin-bottom: 20px;
+}
+
+.score-container p {
+    margin-bottom: 5px;
+    font-size: 16px;
+}
+
+.controls {
+    margin-bottom: 20px;
+}
+
+.speed-control {
+    margin-bottom: 10px;
+}
+
+button {
+    padding: 8px 12px;
+    margin: 5px 0;
+    width: 100%;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+#pause-btn {
+    background-color: #2196F3;
+}
+
+#pause-btn:hover {
+    background-color: #0b7dda;
+}
+
+#reset-btn {
+    background-color: #f44336;
+}
+
+#reset-btn:hover {
+    background-color: #d32f2f;
+}
+
+.next-piece-container {
+    margin-bottom: 20px;
+}
+
+#next-piece {
+    background-color: #eee;
+    border: 1px solid #ddd;
+}
+
+.game-container {
+    border: 2px solid #333;
+}
+
+#tetris {
+    background-color: #111;
+    display: block;
+}
+
+.instructions {
+    margin-top: 20px;
+}
+
+.instructions p {
+    font-size: 14px;
+    margin-bottom: 5px;
+    color: #666;
+}
