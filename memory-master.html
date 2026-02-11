@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字编码记忆训练系统</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --win-color: #ffbb00;
+            --bg-color: #f5f7fa;
+            --card-bg: #ffffff;
+            --text-color: #333;
+            --accent-color: #ff6b6b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        /* 顶部导航栏 */
+        header {
+            background-color: var(--primary-color);
+            color: white;
+            width: 100%;
+            padding: 1rem 0;
+            text-align: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        h1 { margin: 0; font-size: 1.4rem; margin-bottom: 10px; }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+            padding: 0 10px;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 20px;
+            background-color: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        button:hover {
+            background-color: rgba(0, 115, 255, 0.4);
+            transform: translateY(-1px);
+        }
+
+        button.active {
+            background-color: white;
+            color: var(--primary-color);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* 主内容容器 */
+        #app-container {
+            width: 95%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 0 50px 0;
+            flex: 1;
+        }
+
+        /* --- 首页：网格展示模式 --- */
+        .gallery-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 12px;
+            width: 100%;
+        }
+
+        .gallery-card {
+            background: white;
+            border-radius: 8px;
+            padding: 10px 5px;
+            text-align: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            transition: transform 0.2s, box-shadow 0.2s;
+            border: 1px solid transparent;
+        }
+
+        .gallery-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            border-color: var(--primary-color);
+        }
+
+        .gallery-num {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--primary-color);
+            display: block;
+        }
+
+        .gallery-img {
+            height: 110px;
+        }
+
+        .gallery-name {
+            font-size: 0.9rem;
+            color: #555;
+            margin-top: 4px;
+        }
+
+        /* --- 学习模式：大卡片 --- */
+        .learning-card {
+            width: 300px;
+            height: 420px;
+            perspective: 1000px;
+            margin-top: 20px;
+            cursor: pointer;
+        }
+
+        .card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s;
+            transform-style: preserve-3d;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            border-radius: 20px;
+        }
+
+        .learning-card.flipped .card-inner {
+            transform: rotateY(180deg);
+        }
+
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .card-front {
+            background-color: var(--primary-color);
+            border: 1px solid #eee;
+        }
+
+        .card-back {
+            background: white;
+            color: white;
+            transform: rotateY(180deg);
+        }
+
+        .card-main-num {
+            font-size: 6rem;
+            font-weight: bold;
+            color: white;
+            line-height: 1;
+        }
+        
+        .card-back .card-main-num {
+            color: rgba(255,255,255,0.2);
+            font-size: 4rem;
+            position: absolute;
+            top: 20px;
+            right: 20px;
+        }
+
+        .card-main-name {
+            color: var(--primary-color);
+            font-size: 2.8rem;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .card-hint {
+            color: #ccc;
+            font-size: 0.9rem;
+            margin-top: 20px;
+        }
+
+        .img-box {
+            width: 180px;
+            height: 180px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 2px dashed rgba(255,255,255,0.3);
+            margin-bottom: 10px;
+        }
+
+        /* 底部导航按钮 */
+        .nav-bar {
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        }
+
+        .nav-btn {
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            padding: 0;
+        }
+
+        /* --- 游戏模式 --- */
+        .game-header {
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            color: #666;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .game-card {
+            aspect-ratio: 3/4;
+            background-color: white;
+            border-radius: 12px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            font-weight: bold;
+            font-size: 1.2rem;
+            position: relative;
+            transition: transform 0.3s;
+        }
+
+        .game-card.covered {
+            background-color: var(--primary-color);
+            color: transparent;
+        }
+        
+        .game-card.covered::after {
+            position: absolute;
+            content: "?";
+            color: rgba(255,255,255,0.5);
+            font-size: 2rem;
+        }
+
+        .game-card.matched {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+
+        .game-reset-btn {
+            margin-top: 30px;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 10px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+        }
+        
+        .game-reset-btn:hover {
+            background-color: #ff5252;
+        }
+
+        .hide {
+            display: none;
+        }
+
+        .game-win {
+            color: var(--win-color);
+            font-size: 36px;
+            text-align: center;
+        }
+
+        @media (max-width: 600px) {
+            .gallery-grid { grid-template-columns: repeat(4, 1fr); }
+            .game-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+            .learning-card { width: 85vw; height: 110vw; max-height: 450px; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>数字编码记忆助手</h1>
+    <div class="controls">
+        <button onclick="setMode('gallery')" id="btn-gallery" class="active">全览首页</button>
+        <button onclick="setMode('sequential')" id="btn-seq">顺序学习</button>
+        <button onclick="setMode('random')" id="btn-rand">随机抽查</button>
+        <button onclick="setMode('game')" id="btn-game">配对挑战</button>
+    </div>
+</header>
+
+<div id="app-container">
+    </div>
+
+<script>
+    // --- 完整数据 ---
+    const memoryData = [
+        { id: "0", name: "呼啦圈" }, { id: "1", name: "蜡烛" }, { id: "2", name: "鹅" }, { id: "3", name: "耳朵" }, { id: "4", name: "帆船" },
+        { id: "5", name: "钩子" }, { id: "6", name: "勺子" }, { id: "7", name: "镰刀" }, { id: "8", name: "眼镜" }, { id: "9", name: "哨子" },
+        { id: "00", name: "望远镜" }, { id: "01", name: "小树" }, { id: "02", name: "铃儿" }, { id: "03", name: "凳子" }, { id: "04", name: "轿车" },
+        { id: "05", name: "手套" }, { id: "06", name: "手枪" }, { id: "07", name: "锄头" }, { id: "08", name: "溜冰鞋" }, { id: "09", name: "猫" },
+        { id: "10", name: "棒球" }, { id: "11", name: "楼梯" }, { id: "12", name: "椅儿" }, { id: "13", name: "医生" }, { id: "14", name: "钥匙" },
+        { id: "15", name: "鹦鹉" }, { id: "16", name: "石榴" }, { id: "17", name: "仪器" }, { id: "18", name: "糖葫芦" }, { id: "19", name: "衣钩" },
+        { id: "20", name: "香烟" }, { id: "21", name: "鳄鱼" }, { id: "22", name: "双胞胎" }, { id: "23", name: "和尚" }, { id: "24", name: "闹钟" },
+        { id: "25", name: "二胡" }, { id: "26", name: "河流" }, { id: "27", name: "耳机" }, { id: "28", name: "恶霸" }, { id: "29", name: "饿囚" },
+        { id: "30", name: "三轮车" }, { id: "31", name: "鲨鱼" }, { id: "32", name: "扇儿" }, { id: "33", name: "星星" }, { id: "34", name: "三丝" },
+        { id: "35", name: "山虎" }, { id: "36", name: "山鹿" }, { id: "37", name: "山鸡" }, { id: "38", name: "妇女" }, { id: "39", name: "山丘" },
+        { id: "40", name: "司令" }, { id: "41", name: "蜥蜴" }, { id: "42", name: "柿儿" }, { id: "43", name: "石山" }, { id: "44", name: "蛇" },
+        { id: "45", name: "师父" }, { id: "46", name: "饲料" }, { id: "47", name: "司机" }, { id: "48", name: "石板" }, { id: "49", name: "湿狗" },
+        { id: "50", name: "武林" }, { id: "51", name: "工人" }, { id: "52", name: "鼓儿" }, { id: "53", name: "乌纱帽" }, { id: "54", name: "青年" },
+        { id: "55", name: "火车" }, { id: "56", name: "蜗牛" }, { id: "57", name: "武器" }, { id: "58", name: "尾巴" }, { id: "59", name: "蜈蚣" },
+        { id: "60", name: "榴莲" }, { id: "61", name: "儿童" }, { id: "62", name: "牛儿" }, { id: "63", name: "流沙" }, { id: "64", name: "螺丝" },
+        { id: "65", name: "绿壶" }, { id: "66", name: "溜溜球" }, { id: "67", name: "绿漆" }, { id: "68", name: "喇叭" }, { id: "69", name: "太极" },
+        { id: "70", name: "麒麟" }, { id: "71", name: "鸡翼" }, { id: "72", name: "企鹅" }, { id: "73", name: "花旗参" }, { id: "74", name: "骑士" },
+        { id: "75", name: "西服" }, { id: "76", name: "汽油" }, { id: "77", name: "机器" }, { id: "78", name: "青蛙" }, { id: "79", name: "气球" },
+        { id: "80", name: "巴黎" }, { id: "81", name: "白蚁" }, { id: "82", name: "靶儿" }, { id: "83", name: "芭蕉扇" }, { id: "84", name: "巴士" },
+        { id: "85", name: "保姆" }, { id: "86", name: "八路" }, { id: "87", name: "白旗" }, { id: "88", name: "爸爸" }, { id: "89", name: "芭蕉" },
+        { id: "90", name: "酒瓶" }, { id: "91", name: "球衣" }, { id: "92", name: "球儿" }, { id: "93", name: "旧伞" }, { id: "94", name: "首饰" },
+        { id: "95", name: "酒壶" }, { id: "96", name: "蝴蝶" }, { id: "97", name: "旧旗" }, { id: "98", name: "酒杯" }, { id: "99", name: "舅舅" }
+    ];
+
+    // --- 状态 ---
+    let currentIndex = 0;
+    let currentMode = 'gallery';
+    const container = document.getElementById('app-container');
+
+    // --- 初始化 ---
+    window.onload = () => {
+        setMode('gallery');
+    };
+
+    // --- 键盘事件监听 ---
+    document.addEventListener('keydown', (e) => {
+        // 只有在学习模式下才响应
+        if (currentMode === 'sequential') {
+            if (e.key === 'ArrowLeft') {
+                changeIndex(-1);
+            } else if (e.key === 'ArrowRight') {
+                changeIndex(1);
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                // 空格或回车翻转卡片
+                e.preventDefault(); // 防止页面滚动
+                const card = document.querySelector('.learning-card');
+                if (card) card.classList.toggle('flipped');
+            }
+        } 
+        else if (currentMode === 'random') {
+            // 随机模式下，左键或右键切换下一张
+            if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+                e.preventDefault();
+                nextRandom();
+            } else if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                const card = document.querySelector('.learning-card');
+                if (card) card.classList.toggle('flipped');
+            }
+        }
+    });
+
+    // --- 模式切换控制器 ---
+    function setMode(mode, startIndex = 0) {
+        currentMode = mode;
+        if (mode === 'sequential') currentIndex = startIndex; // 允许跳转到指定索引
+
+        // 更新按钮 UI
+        document.querySelectorAll('.controls button').forEach(btn => btn.classList.remove('active'));
+        const btnId = mode === 'sequential' ? 'btn-seq' : (mode === 'gallery' ? 'btn-gallery' : (mode === 'random' ? 'btn-rand' : 'btn-game'));
+        document.getElementById(btnId).classList.add('active');
+
+        // 渲染页面
+        container.innerHTML = ''; // 清空
+        if (mode === 'gallery') renderGallery();
+        else if (mode === 'sequential') renderCard(true);
+        else if (mode === 'random') nextRandom();
+        else if (mode === 'game') initGame();
+    }
+
+    // --- 模式 0: 首页全览 (Gallery) ---
+    function renderGallery() {
+        let html = `<div class="gallery-grid">`;
+        memoryData.forEach((item, index) => {
+            const num = parseIndex(item);
+            const imgContent = `<img src="res/memory/split_${num}.png" width="100%" class="gallery-img">`;
+            html += `
+                <div class="gallery-card" onclick="setMode('sequential', ${index})">
+                    <span>${imgContent}</span>
+                </div>
+            `;
+        });
+        html += `</div>`;
+        container.innerHTML = html;
+    }
+    function parseIndex(item) {
+        let num = 0;
+        if (item.id.length > 1) {
+            num = padZero(parseInt(item.id) + 10, 3);
+        } else {
+            num = padZero(parseInt(item.id), 3);
+        }
+        return num;
+    }
+    function padZero(num, targetLength) {
+        // 同上面的参数校验逻辑
+        if (typeof num !== 'number' || isNaN(num)) {
+            throw new Error('第一个参数必须是有效的数字');
+        }
+        if (typeof targetLength !== 'number' || targetLength < 0 || !Number.isInteger(targetLength)) {
+            throw new Error('第二个参数必须是非负整数');
+        }
+        const numStr = num.toString();
+        // 计算需要补的0的个数
+        const padCount = targetLength - numStr.length;
+        // 若需要补0，则拼接对应数量的0 + 原字符串；否则直接返回原字符串
+        return padCount > 0 ? '0'.repeat(padCount) + numStr : numStr;
+    }
+    // --- 模式 1 & 2: 学习卡片 (Sequential & Random) ---
+    function renderCard(isSequential) {
+        const item = isSequential ? memoryData[currentIndex] : currentRandomItem;
+        
+        // 如果你有图片，请把下面的imgContent 改为 <img src="<res-path>/${item.id}.jpg" style="max-width:100%; max-height:100%">
+        // st imgContent = `<span style="font-size:3rem; color:rgba(255,255,255,0.5)">🖼️</span>`;
+        const num = parseIndex(item);
+        const imgContent = `<img src="res/memory/split_${num}.png" width="100%">`;
+
+        let html = `
+            <div class="learning-card" onclick="this.classList.toggle('flipped')">
+                <div class="card-inner">
+                    <div class="card-front">
+                        <div class="card-main-num">${item.id}</div>
+                        <div class="card-hint">👆 点击或空格翻面</div>
+                    </div>
+                    <div class="card-back">
+                        <div class="img-box">${imgContent}</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="nav-bar">
+                ${isSequential ? `
+                    <button class="nav-btn" onclick="changeIndex(-1)" title="左方向键">‹</button>
+                    <span style="font-weight:bold; color:#666; min-width:80px; text-align:center;">
+                        ${memoryData.indexOf(item) + 1} / ${memoryData.length}
+                    </span>
+                    <button class="nav-btn" onclick="changeIndex(1)" title="右方向键">›</button>
+                ` : `
+                    <button class="nav-btn" style="width:auto; padding:0 20px; border-radius:20px" onclick="nextRandom()">
+                        换一张 ↻
+                    </button>
+                `}
+            </div>
+            <div class="keyboard-hint">⌨️ 提示：使用 ⬅️ ➡️ 键切换，空格键翻面</div>
+        `;
+        container.innerHTML = html;
+    }
+
+    // 顺序切换逻辑
+    function changeIndex(direction) {
+        const newIndex = currentIndex + direction;
+        if (newIndex >= 0 && newIndex < memoryData.length) {
+            currentIndex = newIndex;
+            // 翻页时稍微重置一下卡片状态（可选优化，这里直接重绘最简单）
+            renderCard(true); 
+        }
+    }
+
+    // 随机切换逻辑
+    let currentRandomItem = null;
+    function nextRandom() {
+        currentRandomItem = memoryData[Math.floor(Math.random() * memoryData.length)];
+        renderCard(false);
+    }
+
+    // --- 模式 3: 配对游戏 (Game) ---
+    let firstCard = null, secondCard = null, lockBoard = false;
+
+    function initGame() {
+        const gameCount = 2;  // N对
+        const shuffledAll = [...memoryData].sort(() => 0.5 - Math.random());
+        const selected = shuffledAll.slice(0, gameCount);
+        
+        let gameItems = [];
+        selected.forEach(item => {
+            gameItems.push({ type: 'num', val: item.id, matchId: item.id });
+            gameItems.push({ type: 'name', val: item.name, matchId: item.id });
+        });
+        gameItems.sort(() => 0.5 - Math.random());
+
+        let html = `
+            <div class="game-header">找出 ${gameCount} 组对应的数字和名称</div>
+            <div id="game-board" class="game-grid">
+        `;
+        
+        gameItems.forEach(item => {
+            let num = 0;
+            let imgContent = "";
+            if (item.type === 'name') {
+                item.id = item.matchId;
+                num = parseIndex(item);
+                imgContent = `<img src="res/memory/split_${num}.png" width="100px" style="display:none"`;
+            } else {
+                imgContent = item.val;
+            }
+            const displayVal = item.type === 'num' ? item.val : imgContent;
+            html += `
+                <div class="game-card covered" data-match="${item.matchId}" onclick="flipGameCard(this)">
+                    <span style="font-size:1.8rem">${displayVal}</span>
+                </div>
+            `;
+        });
+
+        html += `</div>
+            <button id="restart" class="game-reset-btn hide" onclick="initGame()">重新开始</button>
+        `;
+        container.innerHTML = html;
+        resetBoard();
+    }
+
+    function showImage(card, display) {
+        let imgDom = card.querySelector('img');
+        if (imgDom) {
+            imgDom.style.display = display;
+        }
+    }
+
+    function flipGameCard(card) {
+        if (lockBoard) return;
+        if (card === firstCard) return;
+        if (card.classList.contains('matched')) return;
+
+        showImage(card, 'block');
+        card.classList.remove('covered');
+
+        if (!firstCard) {
+            firstCard = card;
+            return;
+        }
+
+        secondCard = card;
+        checkForMatch();
+    }
+
+    function checkForMatch() {
+        let isMatch = firstCard.dataset.match === secondCard.dataset.match;
+        isMatch ? disableCards() : unflipCards();
+    }
+
+    function disableCards() {
+        lockBoard = true;
+        setTimeout(() => {
+            firstCard.classList.add('matched');
+            secondCard.classList.add('matched');
+            resetBoard();
+            checkWin();
+        }, 400);
+    }
+
+    function unflipCards() {
+        lockBoard = true;
+        setTimeout(() => {
+            firstCard.classList.add('covered');
+            showImage(firstCard, 'none');
+            secondCard.classList.add('covered');
+            showImage(secondCard, 'none');
+            resetBoard();
+        }, 1000);
+    }
+
+    function resetBoard() {
+        [firstCard, secondCard] = [null, null];
+        lockBoard = false;
+    }
+    
+    function checkWin() {
+        const remaining = document.querySelectorAll('.game-card:not(.matched)');
+        if (remaining.length === 0) {
+            const gameBoard = document.getElementById('game-board');
+            gameBoard.classList.remove('game-grid')
+            gameBoard.classList.add('game-win')
+            gameBoard.innerHTML = `<div class="game-win-msg">🎉恭喜！全部配对成功！</div>`
+            document.getElementById('restart').classList.remove('hide');
+        }
+    }
+</script>
+
+</body>
+</html>
