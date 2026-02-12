@@ -312,9 +312,16 @@
         }
 
         @media (max-width: 600px) {
+            button {
+                padding: 4px 8px;
+                font-weight: 400;
+                transition: all 0.2s;
+                font-size: 0.8rem;
+            }
+            .nav-bar { margin-top: 15px; }
             .gallery-grid { grid-template-columns: repeat(4, 1fr); }
-            .game-grid { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-            .learning-card { width: 85vw; height: 110vw; max-height: 450px; }
+            .game-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }
+            .learning-card { width: 85vw; height: 110vw; max-height: 450px; margin-top:5px}
         }
     </style>
 </head>
@@ -515,7 +522,7 @@
     let firstCard = null, secondCard = null, lockBoard = false;
 
     function initGame() {
-        const gameCount = 2;  // N对
+        const gameCount = 8;  // N对
         const shuffledAll = [...memoryData].sort(() => 0.5 - Math.random());
         const selected = shuffledAll.slice(0, gameCount);
         
