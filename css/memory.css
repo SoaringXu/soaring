@@ -309,6 +309,9 @@ button.active {
 }
 
 @media (max-width: 600px) {
+    #app-container {
+        padding-bottom: 20px;
+    }
     button {
         padding: 4px 8px;
         font-weight: 400;
@@ -319,5 +322,6 @@ button.active {
     .gallery-grid { grid-template-columns: repeat(4, 1fr); }
     .game-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }
     .learning-card { width: 85vw; height: 110vw; max-height: 450px; margin-top:5px}
-    .card-img { width: 68px; }
+    .card-img { width: 60px; }
+    .game-win { font-size: 24px; }
 }
