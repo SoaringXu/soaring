@@ -1,0 +1,323 @@
+:root {
+    --primary-color: #4a90e2;
+    --win-color: #ffbb00;
+    --bg-color: #f5f7fa;
+    --card-bg: #ffffff;
+    --text-color: #333;
+    --accent-color: #ff6b6b;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+}
+
+/* 顶部导航栏 */
+header {
+    background-color: var(--primary-color);
+    color: white;
+    width: 100%;
+    padding: 1rem 0;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+h1 { margin: 0; font-size: 1.4rem; margin-bottom: 10px; }
+
+.controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 0 10px;
+}
+
+button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    background-color: rgba(255,255,255,0.2);
+    color: white;
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+button:hover {
+    background-color: rgba(0, 115, 255, 0.4);
+    transform: translateY(-1px);
+}
+
+button.active {
+    background-color: white;
+    color: var(--primary-color);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* 主内容容器 */
+#app-container {
+    width: 95%;
+    max-width: 1000px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 0 50px 0;
+    flex: 1;
+}
+
+/* --- 首页：网格展示模式 --- */
+.gallery-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 12px;
+    width: 100%;
+}
+
+.gallery-card {
+    background: white;
+    border-radius: 8px;
+    padding: 10px 5px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid transparent;
+}
+
+.gallery-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+    border-color: var(--primary-color);
+}
+
+.gallery-num {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: var(--primary-color);
+    display: block;
+}
+
+.gallery-img {
+    height: 110px;
+}
+
+.gallery-name {
+    font-size: 0.9rem;
+    color: #555;
+    margin-top: 4px;
+}
+
+/* --- 学习模式：大卡片 --- */
+.learning-card {
+    width: 300px;
+    height: 420px;
+    perspective: 1000px;
+    margin-top: 20px;
+    cursor: pointer;
+}
+
+.card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s;
+    transform-style: preserve-3d;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    border-radius: 20px;
+}
+
+.learning-card.flipped .card-inner {
+    transform: rotateY(180deg);
+}
+
+.card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-radius: 20px;
+    padding: 20px;
+    box-sizing: border-box;
+}
+
+.card-front {
+    background-color: var(--primary-color);
+    border: 1px solid #eee;
+}
+
+.card-back {
+    background: white;
+    color: white;
+    transform: rotateY(180deg);
+}
+
+.card-main-num {
+    font-size: 6rem;
+    font-weight: bold;
+    color: white;
+    line-height: 1;
+}
+
+.card-back .card-main-num {
+    color: rgba(255,255,255,0.2);
+    font-size: 4rem;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+}
+
+.card-main-name {
+    color: var(--primary-color);
+    font-size: 2.8rem;
+    font-weight: bold;
+    margin: 20px 0;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.card-hint {
+    color: #ccc;
+    font-size: 0.9rem;
+    margin-top: 20px;
+}
+
+.img-box {
+    width: 180px;
+    height: 180px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px dashed rgba(255,255,255,0.3);
+    margin-bottom: 10px;
+}
+
+/* 底部导航按钮 */
+.nav-bar {
+    margin-top: 30px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: white;
+    padding: 10px 20px;
+    border-radius: 50px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.nav-btn {
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    padding: 0;
+}
+
+/* --- 游戏模式 --- */
+.game-header {
+    margin-bottom: 20px;
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.game-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+    width: 100%;
+    max-width: 600px;
+}
+
+.game-card {
+    aspect-ratio: 3/4;
+    background-color: white;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    font-weight: bold;
+    font-size: 1.2rem;
+    position: relative;
+    transition: transform 0.3s;
+}
+
+.game-card.covered {
+    background-color: var(--primary-color);
+    color: transparent;
+}
+
+.game-card.covered::after {
+    position: absolute;
+    content: "?";
+    color: rgba(255,255,255,0.5);
+    font-size: 2rem;
+}
+
+.game-card.matched {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s;
+}
+
+.game-reset-btn {
+    margin-top: 30px;
+    background-color: var(--accent-color);
+    color: white;
+    padding: 10px 30px;
+    border-radius: 25px;
+    font-size: 1rem;
+}
+
+.game-reset-btn:hover {
+    background-color: #ff5252;
+}
+
+.hide {
+    display: none;
+}
+
+.game-win {
+    color: var(--win-color);
+    font-size: 36px;
+    text-align: center;
+}
+
+.card-img {
+    width: 100px;
+}
+
+@media (max-width: 600px) {
+    button {
+        padding: 4px 8px;
+        font-weight: 400;
+        transition: all 0.2s;
+        font-size: 0.8rem;
+    }
+    .nav-bar { margin-top: 15px; }
+    .gallery-grid { grid-template-columns: repeat(4, 1fr); }
+    .game-grid { grid-template-columns: repeat(4, 1fr); gap: 5px; }
+    .learning-card { width: 85vw; height: 110vw; max-height: 450px; margin-top:5px}
+    .card-img { width: 68px; }
+}
