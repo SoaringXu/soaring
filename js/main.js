@@ -8,6 +8,6 @@ urls = [
     ["互联网黑话", "./blackwords.html"],
 ]
 for (var i = 0; i < urls.length; i++) {
-    var a = "<span><a href='" + urls[i][1] + "'>" + urls[i][0] + "</a></span>"
-    $("#main").append(a)
+    var a = `<a href="${urls[i][1]}" class="link-item">${urls[i][0]}</a>`
+    $("#links-container").append(a)
 }

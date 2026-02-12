@@ -1,0 +1,125 @@
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --text-color: #333;
+    --bg-glass: rgba(255, 255, 255, 0.85);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans SC', sans-serif;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: var(--text-color);
+    padding: 20px;
+}
+
+/* 玻璃拟态卡片容器 */
+.container {
+    background: var(--bg-glass);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 40px 30px;
+    width: 100%;
+    max-width: 450px; /* 适配手机宽度 */
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    animation: fadeIn 0.8s ease-out;
+}
+
+/* 头像（可选） */
+.avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background: #fff;
+    margin: 0 auto 20px;
+    border: 4px solid #fff;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 40px;
+}
+
+h1 {
+    font-size: 1.8rem;
+    margin-bottom: 10px;
+    color: #2d3436;
+}
+
+p {
+    font-size: 1rem;
+    color: #636e72;
+    line-height: 1.6;
+    margin-bottom: 30px;
+}
+
+/* 链接按钮美化 */
+.links {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.link-item {
+    display: block;
+    padding: 12px;
+    background: #fff;
+    color: var(--primary-color);
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid #eee;
+}
+
+.link-item:hover {
+    transform: translateY(-3px);
+    background: var(--primary-color);
+    color: #fff;
+    box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+.col2 {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+}
+
+.link-item-1 {
+    padding: 12px;
+    background: #fff;
+    color: var(--primary-color);
+    text-decoration: none;
+    border-radius: 12px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    border: 1px solid #eee;
+    width: 100%;
+    flex: 1;
+}
+
+/* 移动端 H5 适配：针对超小屏调整 */
+@media (max-width: 375px) {
+    .container {
+        padding: 30px 20px;
+    }
+    h1 { font-size: 1.5rem; }
+}
+
+/* 入场动画 */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}

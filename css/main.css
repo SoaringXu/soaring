@@ -1,3 +1,20 @@
+.main-container {
+    max-width: 1200px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 40px 30px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    border: 1px solid rgba(255,255,255,0.3);
+    animation: fadeIn 0.8s ease-out;
+}
+#links-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 20px;
+}
 table {
     font-family: verdana,arial,sans-serif;
     font-size:14px;
@@ -42,4 +59,12 @@ a{
 }
 .center {
     text-align: center;
+}
+/* 移动端 H5 适配：针对小屏调整 */
+@media (max-width: 480px) {
+    #links-container {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 5px;
+        font-size: 0.9rem;
+    }
 }

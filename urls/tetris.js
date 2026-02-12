@@ -4,7 +4,7 @@ const ROWS = 20;
 const BLOCK_SIZE = 30;
 const COLORS = [
     '#00FFFF', // 青色 - I形
-    '#0000FF', // 蓝色 - J形
+    '#0055FF', // 蓝色 - J形
     '#FFA500', // 橙色 - L形
     '#FFFF00', // 黄色 - O形
     '#00FF00', // 绿色 - S形
@@ -167,7 +167,7 @@ function createPiece() {
 function draw() {
     if (gameOver) return
     // 将背景色改为深灰色而不是黑色，增加对比度
-    ctx.fillStyle = '#222222';
+    ctx.fillStyle = '#555555';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
     // 绘制已固定的方块
@@ -181,7 +181,6 @@ function draw() {
 
 // 绘制下一个方块
 function drawNextPiece() {
-    console.log('draw next piece', nextPiece)
     nextCtx.fillStyle = '#eee';
     nextCtx.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
     
@@ -207,8 +206,8 @@ function drawMatrix(matrix, offset, color = null, context = ctx) {
                 context.strokeRect(x + offset.x, y + offset.y, 1, 1);
                 
                 // 添加高光效果
-                context.fillStyle = 'rgba(255, 255, 255, 0.1)';
-                context.fillRect(x + offset.x, y + offset.y, 0.3, 0.3);
+                // context.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                // context.fillRect(x + offset.x, y + offset.y, 0.3, 0.3);
             }
         });
     });
@@ -216,7 +215,6 @@ function drawMatrix(matrix, offset, color = null, context = ctx) {
 
 // 碰撞检测
 function collide(matrix, position) {
-    // console.log(matrix, position)
     for (let y = 0; y < matrix.length; y++) {
         for (let x = 0; x < matrix[y].length; x++) {
             if (matrix[y][x] !== 0 &&
@@ -293,7 +291,6 @@ function drop() {
         
         // 检查游戏结束
         if (currentPiece.y <= 0) {
-            console.log('Game Over!', currentPiece);
             gameOver = true;
             cancelAnimationFrame(requestId);
             requestId = null;
@@ -311,7 +308,6 @@ function drop() {
         
         // 检查新方块是否能放置，如果不能则游戏结束
         if (collide(currentPiece.shape, {x: currentPiece.x, y: currentPiece.y})) {
-            console.log('current piece:', currentPiece)
             gameOver = true;
             cancelAnimationFrame(requestId);
             requestId = null;
@@ -429,7 +425,6 @@ function animate(time = 0) {
 
 // 添加游戏结束显示函数
 function showGameOver() {
-    console.log('show Game Over!');
     // 绘制半透明背景
     ctx.fillStyle = 'rgba(0, 0, 0, 0.75)';
     ctx.fillRect(0, 0, COLS, ROWS);
