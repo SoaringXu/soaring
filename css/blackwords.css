@@ -1,6 +1,11 @@
 body {
   text-align: center;
+  background: var(--primary-color);
+  transition: background-color 0.5s;
   margin: 20px 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .title {
@@ -18,8 +23,10 @@ body {
 }
 
 .text {
+  border-radius: 4px;
   text-align: left;
-  padding: 0 0 30px 0;
+  padding: 10px 20px 30px;
+  width: 1274px;
 }
 
 .content {

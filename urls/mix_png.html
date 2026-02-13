@@ -3,17 +3,22 @@
 
 <head>
     <meta charset="utf-8">
-    <title>PolyPNG by zcyzcy88 | 点击就变图片生成器</title>
+    <title>点击就变图片生成器</title>
+    <link rel="stylesheet" href="../css/index-bar.css" type="text/css">
     <style type="text/css">
         body {
             line-height: 1.5;
+            background: var(--primary-color);
             transition: background-color 0.5s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
         p {
+            color: white;
             max-width: 500px;
             padding: 5px 20px;
-            background-color: rgba(255, 255, 255, 0.6)
         }
 
         img {
@@ -24,8 +29,7 @@
 
         #output-container {
             position: fixed;
-            top: 0;
-            left: 600px;
+            top: 500px;
             max-width: 500px;
             width: 500px;
         }
@@ -33,6 +37,15 @@
 </head>
 
 <body>
+    <div class="top-nav-bar"></div>
+    <nav class="top-nav">
+        <a href="../index.html" class="nav-logo">🌟 星之彼岸</a>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首页</a>
+            <a href="../main.html" class="nav-link">吃喝玩乐</a>
+        </div>
+    </nav>
+    <div>
     <p>
         选择图片，点击生成，右键保存。<br />
         Chose images, chick "Create" button, save image by right-click.
@@ -41,8 +54,6 @@
         生成的图片尺寸是图片1的尺寸。<br />
         The size of created image is same as Image 1.
     </p>
-
-    <br />
 
     <p>
         <label>
@@ -57,8 +68,6 @@
         </label>
     </p>
 
-    <br />
-
     <p>
         <button onclick="run()"> 生成 / Create </button>
         <button onclick="toggle()"> 切换背景颜色 / Toggle background color </button>
@@ -67,8 +76,9 @@
     <div id="output-container">
         <img id="output" onclick="toggle()" />
     </div>
+    </div>
+
     <script type="text/javascript">
-        'use strict';
 
         var img1 = document.createElement('img')
         var img2 = document.createElement('img')

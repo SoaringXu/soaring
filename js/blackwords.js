@@ -99,9 +99,81 @@ function generate() {
   chapter = addParagraph(chapter)
   article.push(chapter)
 
-  document.querySelector('#text').innerHTML = '<div class="content">' + article.join('</div><div class="content">') + '</div>'
+  let textDom = document.querySelector('#text')
+  textDom.innerHTML = '<div class="content">' + article.join('</div><div class="content">') + '</div>'
+  textDom.style.background = 'white'
 }
 
 document.querySelector('#generate').addEventListener('click', function() {
     generate()
+})
+
+async function copyText(text) {
+  if (!text) return false;
+  // 1) 优先使用现代 Clipboard API（需要安全上下文/权限）
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (_) {}
+
+  // 2) 兜底：textarea + execCommand（兼容 HTTP/老浏览器）
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    ta.style.left = "-9999px";
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, ta.value.length);
+
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+
+async function createToast(color='#ffffff', bgColor='rgba(0, 0, 0, 0.7)') {
+  let toastDom = document.querySelector('#ToasT')
+  if (!toastDom) {
+    toastDom = document.createElement('div')
+    toastDom.id = 'ToasT'
+    toastDom.style.position = 'fixed'
+    toastDom.style.top = '30%'
+    toastDom.style.left = '50%'
+    toastDom.style.transform = 'translateX(-50%)'
+    toastDom.style.backgroundColor = bgColor
+    toastDom.style.color = color
+    toastDom.style.padding = '10px 20px'
+    toastDom.style.borderRadius = '8px'
+    toastDom.style.zIndex = '9999'
+    toastDom.style.display = 'none'
+    document.body.appendChild(toastDom)
+  }
+}
+async function toast(msg, color='#ffffff', bgColor='rgba(0, 0, 0, 0.7)', duration = 2000) {
+  await createToast(color, bgColor)
+  let toastDom = document.querySelector('#ToasT')
+  toastDom.innerHTML = msg
+  toastDom.style.display = 'block'
+  setTimeout(() => {
+    toastDom.style.display = 'none'
+    document.body.removeChild(toastDom)
+  }, duration)
+}
+
+document.querySelector('#copy').addEventListener('click', async function() {
+  let text = document.querySelector('#text').innerText
+  let ok = await copyText(text)
+  if (ok) {
+    toast('复制成功', 'white', 'rgba(92, 185, 92)')
+  } else {
+    toast('复制失败', 'white', 'rgba(255, 0, 0, 0.7)')
+  }
 })

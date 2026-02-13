@@ -1,0 +1,67 @@
+:root {
+    --primary-color: #667eea;
+    --secondary-color: #764ba2;
+    --text-color: #333;
+    --bg-glass: rgba(255, 255, 255, 0.85);
+}
+body {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+}
+/* 导航栏样式 */
+.top-nav-bar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.8);
+    z-index: 899;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(255,255,255,0.3);
+}
+.top-nav {
+    position: fixed;
+    top: 0;
+    max-width: 1024px; 
+    margin: 0 auto;
+    width: 100%;
+    height: 60px;
+    background: transparent;
+    backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    z-index: 900;
+}
+
+.top-nav .nav-logo {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.top-nav .nav-links {
+    margin-left: auto;
+    display: flex;
+    gap: 20px;
+}
+
+.top-nav .nav-link {
+    color: var(--text-color);
+    text-decoration: none;
+    font-size: 1rem;
+    transition: color 0.3s;
+}
+
+.top-nav .nav-link:hover {
+    color: var(--primary-color);
+}
+
+/* 为 body 添加顶部内边距，防止导航栏遮挡内容 */
+body {
+    padding-top: 60px !important;
+}

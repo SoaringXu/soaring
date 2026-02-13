@@ -4,11 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>生命游戏</title>
+<link rel="stylesheet" href="../css/index-bar.css" type="text/css">
 <style>
+    body {
+        background: var(--primary-color);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
     .container {
         width: 950px;
         height: 521px;
         margin: 0 auto;
+        margin-top: 20px;
     }
     .grid-container {
         display: grid;
@@ -36,6 +44,14 @@
 </style>
 </head>
 <body>
+<div class="top-nav-bar"></div>
+<nav class="top-nav">
+    <a href="../index.html" class="nav-logo">🌟 星之彼岸</a>
+    <div class="nav-links">
+        <a href="../index.html" class="nav-link">首页</a>
+        <a href="../main.html" class="nav-link">吃喝玩乐</a>
+    </div>
+</nav>
 <div id="container" class="container">
     <div id="rounds">第1轮演化</div>
     <div class="grid-container" id="gridContainer"></div>
