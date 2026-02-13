@@ -33,3 +33,10 @@ body {
   font-size: 15px;
   margin: 10px 0;
 }
+
+.top-nav .nav-logo {
+  font-size: 19px;
+}
+.top-nav .nav-link {
+  font-size: 16px;
+}
