@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>图片字幕生成器</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 10px;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .page-wrapper {
+            width: 1200px;
+            max-width: 100%;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 18px;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+            padding: 24px 28px 28px;
+        }
+        .page-header {
+            margin-bottom: 18px;
+        }
+        .page-title {
+            font-size: 22px;
+            margin: 0 0 6px;
+            color: #222;
+        }
+        .page-subtitle {
+            margin: 0;
+            font-size: 13px;
+            color: #666;
+        }
+        .main-layout {
+            display: flex;
+            gap: 24px;
+        }
+        .preview-panel {
+            flex: 1.1;
+            background: #f5f7fb;
+            border-radius: 14px;
+            border: 1px solid #e0e4f2;
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            min-height: 420px;
+        }
+        #output {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
+        .subtitle-layer {
+            width: auto;
+            line-height: 0;
+            font-size: 0;
+        }
+        canvas {
+            display: block;
+            max-width: 100%;
+            height: auto;
+        }
+        .empty-hint {
+            color: #9ca3af;
+            font-size: 14px;
+            margin: 0 auto;
+        }
+        .control-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .field-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .field-label {
+            font-size: 13px;
+            color: #555;
+        }
+        .inline-fields {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px 20px;
+        }
+        .inline-field {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #444;
+        }
+        .inline-field input[type="number"] {
+            width: 80px;
+            padding: 4px 6px;
+        }
+        .inline-field input[type="color"] {
+            width: 40px;
+            height: 28px;
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
+        .color-text-input {
+            width: 90px;
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 12px;
+            font-family: Consolas, Menlo, Monaco, monospace;
+            text-transform: uppercase;
+        }
+        .watermark-text-input {
+            width: 137px;
+            padding: 6px 8px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 12px;
+        }
+        .file-input-wrapper {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .hidden-file-input {
+            display: none;
+        }
+        .file-button {
+            padding: 7px 14px;
+            background: #eef2ff;
+            color: #4b5563;
+            border-radius: 18px;
+            border: 1px solid #c7d2fe;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .file-button:hover {
+            background: #e0e7ff;
+        }
+        .file-name {
+            font-size: 12px;
+            color: #6b7280;
+            max-width: 180px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .preview-panel.no-image {
+            cursor: pointer;
+        }
+        textarea {
+            width: 100%;
+            height: 180px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            resize: vertical;
+            font-size: 13px;
+            font-family: inherit;
+        }
+        textarea:focus,
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 1px rgba(102, 126, 234, 0.3);
+        }
+        .button-row {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 9px 18px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .button-reset {
+            background: #fee2e2;
+            color: #b91c1c;
+        }
+        .button-reset:hover {
+            background: #fecaca;
+        }
+        button.secondary {
+            background: #e5e7eb;
+            color: #374151;
+        }
+        button:hover {
+            filter: brightness(1.05);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        @media (max-width: 960px) {
+            body {
+                padding: 12px;
+                align-items: stretch;
+            }
+            .page-wrapper {
+                padding: 18px 16px 20px;
+            }
+            .main-layout {
+                flex-direction: column;
+            }
+            .preview-panel {
+                min-height: 260px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <div class="page-header">
+            <h2 class="page-title">图片字幕生成器</h2>
+            <p class="page-subtitle">左侧预览生成的图片，右侧设置参数并输入多行字幕</p>
+        </div>
+        <div class="main-layout">
+            <div id="previewPanel" class="preview-panel no-image">
+                <div id="output">
+                    <div class="empty-hint">点击左侧区域或右侧按钮选择图片，这里会显示预览</div>
+                </div>
+            </div>
+            <div class="control-panel">
+                <div class="field-group">
+                    <span class="field-label" style="font-weight: bold;">选择原始图片</span>
+                    <div class="file-input-wrapper">
+                        <button type="button" class="file-button" onclick="document.getElementById('imageInput').click()">选择图片</button>
+                        <span id="fileName" class="file-name">尚未选择图片</span>
+                    </div>
+                    <input type="file" id="imageInput" accept="image/*" class="hidden-file-input">
+                </div>
+                <div class="field-group">
+                    <span class="field-label" style="font-weight: bold;">样式设置</span>
+                    <div class="inline-fields">
+                        <label class="inline-field" for="subtitleHeight">
+                            <span>字幕高度(px)</span>
+                            <input type="number" id="subtitleHeight" value="40" min="50" max="300">
+                        </label>
+                        <label class="inline-field" for="fontSize">
+                            <span>字体大小(px)</span>
+                            <input type="number" id="fontSize" value="30" min="12" max="100">
+                        </label>
+                    </div>
+                    <div class="inline-fields">
+                        <label class="inline-field" for="textColor">
+                            <span>字体颜色</span>
+                            <input type="color" id="textColor" value="#ffffff">
+                            <input type="text" id="textColorInput" class="color-text-input" maxlength="7" placeholder="#FFFFFF">
+                        </label>
+                        <label class="inline-field" for="strokeColor">
+                            <span>轮廓颜色</span>
+                            <input type="color" id="strokeColor" value="#000000">
+                            <input type="text" id="strokeColorInput" class="color-text-input" maxlength="7" placeholder="#000000">
+                        </label>
+                        <label class="inline-field" for="watermarkText">
+                            <span>水印文字</span>
+                            <input type="text" id="watermarkText" class="watermark-text-input" placeholder="可选" value="CMOS都有">
+                        </label>
+                        <label class="inline-field" for="watermarkColor">
+                            <span>水印颜色</span>
+                            <input type="color" id="watermarkColor" value="#ffffff">
+                            <input type="text" id="watermarkColorInput" class="color-text-input" maxlength="7" placeholder="#FFFFFF">
+                        </label>
+                    </div>
+                </div>
+                <div class="field-group">
+                    <span class="field-label" style="font-weight: bold;">字幕文本（每行一条，将依次生成多层图片）</span>
+                    <textarea id="subtitleText" placeholder="示例：&#10;第一行字幕&#10;第二行字幕&#10;第三行字幕"></textarea>
+                </div>
+                <div class="button-row">
+                    <button onclick="generateSubtitles()">生成字幕图片</button>
+                    <button type="button" id="resetButton" class="button-reset" style="display: none" onclick="resetContent()">重置内容</button>
+                    <button onclick="saveImage()" id="saveButton" class="secondary" style="display: none;">保存合成图片</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const lineWidth = 3;
+        const fileNameEl = document.getElementById('fileName');
+        const previewPanelEl = document.getElementById('previewPanel');
+        const imageInput = document.getElementById('imageInput');
+        const subtitleText = document.getElementById('subtitleText');
+        const output = document.getElementById('output');
+        const resetButton = document.getElementById('resetButton');
+        const saveButton = document.getElementById('saveButton');
+        const subtitleHeightInput = document.getElementById('subtitleHeight');
+        const fontSizeInput = document.getElementById('fontSize');
+        const textColorInputEl = document.getElementById('textColor');
+        const strokeColorInputEl = document.getElementById('strokeColor');
+        const watermarkColorInputEl = document.getElementById('watermarkColor');
+        const textColorText = document.getElementById('textColorInput');
+        const strokeColorText = document.getElementById('strokeColorInput');
+        const watermarkColorText = document.getElementById('watermarkColorInput');
+        const watermarkTextEl = document.getElementById('watermarkText');
+        function generateSubtitles() {
+            // 获取样式设置
+            const subtitleHeight = parseInt(subtitleHeightInput.value);
+            const fontSize = parseInt(fontSizeInput.value);
+            const textColor = textColorInputEl.value;
+            const strokeColor = strokeColorInputEl.value;
+            
+            if (!imageInput.files[0]) {
+                alert('请先选择图片！');
+                return;
+            }
+
+            const lines = subtitleText.value.trim().split('\n');
+            if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
+                alert('请输入字幕文本！');
+                return;
+            }
+
+            output.innerHTML = '';
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                const img = new Image();
+                img.src = e.target.result;
+                
+                img.onload = function() {
+                    const scale = 900 / img.width;
+                    const width = 900;
+                    const height = Math.round(img.height * scale);
+                    
+                    // 创建原图
+                    const originalCanvas = document.createElement('canvas');
+                    originalCanvas.width = width;
+                    originalCanvas.height = height;
+                    const originalCtx = originalCanvas.getContext('2d');
+                    originalCtx.drawImage(img, 0, 0, width, height);
+                    
+                    // 在原图上添加第一行字幕
+                    if (lines.length > 0) {
+                        originalCtx.fillStyle = textColor;
+                        originalCtx.strokeStyle = strokeColor;
+                        originalCtx.lineWidth = lineWidth;
+                        originalCtx.font = `${fontSize}px Arial`;
+                        originalCtx.textAlign = 'center';
+                        const text = lines[0].trim();
+                        const y = height - subtitleHeight/2 + fontSize/3;
+                        originalCtx.strokeText(text, width/2, y);
+                        originalCtx.fillText(text, width/2, y);
+                    }
+                    
+                    // 添加水印
+                    const watermarkText = (watermarkTextEl?.value || '').trim();
+                    if (watermarkText) {
+                        originalCtx.save();
+                        originalCtx.globalAlpha = 0.3;
+                        originalCtx.fillStyle = watermarkColorInputEl.value;
+                        originalCtx.font = '32px Arial';
+                        originalCtx.textAlign = 'right';
+                        originalCtx.fillText(watermarkText, width - 20, 50);
+                        originalCtx.restore();
+                    }
+                    
+                    output.appendChild(originalCanvas);
+
+                    // 为剩余字幕创建画布
+                    lines.slice(1).forEach((line, index) => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = subtitleHeight + 1;  // 高度加1用于分隔条
+                        const ctx = canvas.getContext('2d');
+                        
+                        // 添加半透明白色分隔条
+                        ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                        ctx.fillRect(0, 0, width, 1);
+                        
+                        // 截取原图底部区域并绘制
+                        ctx.drawImage(img, 
+                            0, img.height - (subtitleHeight / scale),
+                            img.width, subtitleHeight / scale,
+                            0, 1,  // 向下偏移1像素，为分隔条留空间
+                            width, subtitleHeight
+                        );
+                        
+                        // 设置字幕样式
+                        ctx.fillStyle = textColor;
+                        ctx.strokeStyle = strokeColor;
+                        ctx.lineWidth = lineWidth;
+                        ctx.font = `${fontSize}px Arial`;
+                        ctx.textAlign = 'center';
+                        
+                        // 添加字幕
+                        const text = line.trim();
+                        const y = subtitleHeight/2 + fontSize/3 + 1;  // 文字位置也要下移1像素
+                        ctx.strokeText(text, width/2, y);
+                        ctx.fillText(text, width/2, y);
+                        
+                        const div = document.createElement('div');
+                        div.className = 'subtitle-layer';
+                        div.appendChild(canvas);
+                        output.appendChild(div);
+                    });
+                    resetButton.style.display = 'block';
+                    saveButton.style.display = 'block';
+                };
+            };
+            reader.readAsDataURL(imageInput.files[0]);
+        }
+        
+        function saveImage() {
+            const canvases = output.getElementsByTagName('canvas');
+            const finalCanvas = document.createElement('canvas');
+            const totalHeight = Array.from(canvases).reduce((sum, canvas) => sum + canvas.height, 0);
+            finalCanvas.width = canvases[0].width;
+            finalCanvas.height = totalHeight;
+            const ctx = finalCanvas.getContext('2d');
+            let currentY = 0;
+            Array.from(canvases).forEach(canvas => {
+                ctx.drawImage(canvas, 0, currentY);
+                currentY += canvas.height;
+            });
+            const link = document.createElement('a');
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+            const originalFileName = imageInput.files[0].name.split('.')[0];
+            link.download = `${originalFileName}_sg${timestamp}.png`;
+            link.href = finalCanvas.toDataURL('image/png');
+            link.click();
+        }
+        function resetContent() {
+            if (imageInput) imageInput.value = '';
+            if (subtitleText) subtitleText.value = '';
+            if (subtitleHeightInput) subtitleHeightInput.value = 40;
+            if (fontSizeInput) fontSizeInput.value = 30;
+            if (textColorInputEl) textColorInputEl.value = '#ffffff';
+            if (strokeColorInputEl) strokeColorInputEl.value = '#000000';
+            if (watermarkColorInputEl) watermarkColorInputEl.value = '#ffffff';
+            if (textColorText) textColorText.value = '#FFFFFF';
+            if (strokeColorText) strokeColorText.value = '#000000';
+            if (watermarkColorText) watermarkColorText.value = '#FFFFFF';
+            if (watermarkTextEl) watermarkTextEl.value = 'CMOS都有';
+            if (output) {
+                output.innerHTML = '';
+                const hint = document.createElement('div');
+                hint.className = 'empty-hint';
+                hint.textContent = '点击左侧区域或右侧按钮选择图片，这里会显示预览';
+                output.appendChild(hint);
+            }
+            if (resetButton) resetButton.style.display = 'none';
+            if (saveButton) saveButton.style.display = 'none';
+            if (fileNameEl) fileNameEl.textContent = '尚未选择图片';
+            if (previewPanelEl) previewPanelEl.classList.add('no-image');
+        }
+        function bindColorWithText(colorId, textId) {
+            const colorInput = document.getElementById(colorId);
+            const textInput = document.getElementById(textId);
+            if (!colorInput || !textInput) return;
+            textInput.value = colorInput.value.toUpperCase();
+            colorInput.addEventListener('input', function() {
+                textInput.value = colorInput.value.toUpperCase();
+            });
+            textInput.addEventListener('input', function() {
+                let v = textInput.value.trim();
+                if (v.length === 0) {
+                    textInput.style.borderColor = '#f97316';
+                    return;
+                }
+                if (v[0] !== '#') v = '#' + v;
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                    colorInput.value = v;
+                    textInput.style.borderColor = '#22c55e';
+                } else {
+                    textInput.style.borderColor = '#ef4444';
+                }
+            });
+            textInput.addEventListener('blur', function() {
+                let v = textInput.value.trim();
+                if (v.length === 0) {
+                    textInput.value = colorInput.value.toUpperCase();
+                    textInput.style.borderColor = '#d1d5db';
+                    return;
+                }
+                if (v[0] !== '#') v = '#' + v;
+                if (/^#[0-9a-fA-F]{6}$/.test(v)) {
+                    colorInput.value = v;
+                    textInput.value = v.toUpperCase();
+                } else {
+                    textInput.value = colorInput.value.toUpperCase();
+                }
+                textInput.style.borderColor = '#d1d5db';
+            });
+        }
+        bindColorWithText('textColor', 'textColorInput');
+        bindColorWithText('strokeColor', 'strokeColorInput');
+        bindColorWithText('watermarkColor', 'watermarkColorInput');
+        if (imageInput) {
+            imageInput.addEventListener('change', function() {
+                if (!imageInput.files || !imageInput.files[0]) return;
+                const file = imageInput.files[0];
+                if (fileNameEl) fileNameEl.textContent = file.name;
+                if (!output) return;
+                output.innerHTML = '';
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const img = new Image();
+                    img.onload = function() {
+                        const maxWidth = 900;
+                        const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+                        const width = img.width * scale;
+                        const height = img.height * scale;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        output.appendChild(canvas);
+                        if (resetButton) resetButton.style.display = 'none';
+                        if (saveButton) saveButton.style.display = 'none';
+                        if (previewPanelEl) previewPanelEl.classList.remove('no-image');
+                    };
+                    img.src = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+        if (previewPanelEl && imageInput) {
+            previewPanelEl.addEventListener('click', function() {
+                if (previewPanelEl.classList.contains('no-image')) {
+                    imageInput.click();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
