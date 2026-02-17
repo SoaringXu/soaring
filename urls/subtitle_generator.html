@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>图片字幕生成器</title>
+    <link rel="stylesheet" href="../css/index-bar.css" type="text/css">
     <style>
         * {
             box-sizing: border-box;
@@ -106,6 +107,9 @@
         .inline-field input[type="number"] {
             width: 80px;
             padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 12px;
         }
         .inline-field input[type="color"] {
             width: 40px;
@@ -170,6 +174,7 @@
             resize: vertical;
             font-size: 13px;
             font-family: inherit;
+            resize: none;
         }
         textarea:focus,
         input:focus {
@@ -230,6 +235,14 @@
     </style>
 </head>
 <body>
+    <div class="top-nav-bar"></div>
+    <nav class="top-nav">
+        <a href="../index.html" class="nav-logo">🌟 星之彼岸</a>
+        <div class="nav-links">
+            <a href="../index.html" class="nav-link">首页</a>
+            <a href="../main.html" class="nav-link">吃喝玩乐</a>
+        </div>
+    </nav>
     <div class="page-wrapper">
         <div class="page-header">
             <h2 class="page-title">图片字幕生成器</h2>
