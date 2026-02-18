@@ -105,7 +105,7 @@
             color: #444;
         }
         .inline-field input[type="number"] {
-            width: 80px;
+            width: 60px;
             padding: 4px 6px;
             border-radius: 6px;
             border: 1px solid #d1d5db;
@@ -133,6 +133,13 @@
             border-radius: 6px;
             border: 1px solid #d1d5db;
             font-size: 12px;
+        }
+        .font-select {
+            padding: 4px 6px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            font-size: 12px;
+            min-width: 80px;
         }
         .file-input-wrapper {
             display: inline-flex;
@@ -267,12 +274,20 @@
                     <span class="field-label" style="font-weight: bold;">样式设置</span>
                     <div class="inline-fields">
                         <label class="inline-field" for="subtitleHeight">
-                            <span>字幕高度(px)</span>
+                            <span>字幕高度</span>
                             <input type="number" id="subtitleHeight" value="40" min="50" max="300">
+                            <span>px</span>
                         </label>
                         <label class="inline-field" for="fontSize">
-                            <span>字体大小(px)</span>
+                            <span>字体大小</span>
                             <input type="number" id="fontSize" value="30" min="12" max="100">
+                            <span>px</span>
+                        </label>
+                        <label class="inline-field" for="fontFamily">
+                            <span>字体</span>
+                            <select id="fontFamily" class="font-select">
+                                <option value='"Microsoft YaHei"' selected>微软雅黑</option>
+                            </select>
                         </label>
                     </div>
                     <div class="inline-fields">
@@ -321,6 +336,34 @@
         const saveButton = document.getElementById('saveButton');
         const subtitleHeightInput = document.getElementById('subtitleHeight');
         const fontSizeInput = document.getElementById('fontSize');
+        const fontFamilySelect = document.getElementById('fontFamily');
+        const fontOptions = [
+            ["SimHei", '黑体 SimHei'],
+            ["SimSun", '宋体 SimSun'],
+            ["KaiTi", '楷体 KaiTi'],
+            ["FangSong", '仿宋 FangSong'],
+            ["Arial", 'Arial'],
+            ["Cascadia Mono", ' Cascadia Mono'],
+            ["Comic Sans MS", 'Comic Sans MS'],
+            ["Consolas", 'Consolas'],
+            ["Courier New", 'Courier New'],
+            ["Georgia", 'Georgia'],
+            ["Impact", 'Impact'],
+            ["Lucida Console", 'Lucida Console'],
+            ["MS Gothic", 'MS Gothic'],
+            ["Tahoma", 'Tahoma'],
+            ["Times New Roman", 'Times New Roman'],
+            ["Trebuchet MS", 'Trebuchet MS'],
+            ["Verdana", 'Verdana']
+        ];
+        if (fontFamilySelect) {
+            fontOptions.forEach(function(opt) {
+                const optionEl = document.createElement('option');
+                optionEl.value = opt[0];
+                optionEl.textContent = opt[1];
+                fontFamilySelect.appendChild(optionEl);
+            });
+        }
         const textColorInputEl = document.getElementById('textColor');
         const strokeColorInputEl = document.getElementById('strokeColor');
         const watermarkColorInputEl = document.getElementById('watermarkColor');
@@ -334,6 +377,7 @@
             const fontSize = parseInt(fontSizeInput.value);
             const textColor = textColorInputEl.value;
             const strokeColor = strokeColorInputEl.value;
+            const fontFamily = fontFamilySelect ? fontFamilySelect.value : '"Microsoft YaHei"';
             
             if (!imageInput.files[0]) {
                 alert('请先选择图片！');
@@ -370,7 +414,7 @@
                         originalCtx.fillStyle = textColor;
                         originalCtx.strokeStyle = strokeColor;
                         originalCtx.lineWidth = lineWidth;
-                        originalCtx.font = `${fontSize}px Arial`;
+                        originalCtx.font = `${fontSize}px ${fontFamily}`;
                         originalCtx.textAlign = 'center';
                         const text = lines[0].trim();
                         const y = height - subtitleHeight/2 + fontSize/3;
@@ -384,7 +428,7 @@
                         originalCtx.save();
                         originalCtx.globalAlpha = 0.3;
                         originalCtx.fillStyle = watermarkColorInputEl.value;
-                        originalCtx.font = '32px Arial';
+                        originalCtx.font = `32px ${fontFamily}`;
                         originalCtx.textAlign = 'right';
                         originalCtx.fillText(watermarkText, width - 20, 50);
                         originalCtx.restore();
@@ -415,7 +459,7 @@
                         ctx.fillStyle = textColor;
                         ctx.strokeStyle = strokeColor;
                         ctx.lineWidth = lineWidth;
-                        ctx.font = `${fontSize}px Arial`;
+                        ctx.font = `${fontSize}px ${fontFamily}`;
                         ctx.textAlign = 'center';
                         
                         // 添加字幕
@@ -460,6 +504,7 @@
             if (subtitleText) subtitleText.value = '';
             if (subtitleHeightInput) subtitleHeightInput.value = 40;
             if (fontSizeInput) fontSizeInput.value = 30;
+            if (fontFamilySelect) fontFamilySelect.value = '"Microsoft YaHei"';
             if (textColorInputEl) textColorInputEl.value = '#ffffff';
             if (strokeColorInputEl) strokeColorInputEl.value = '#000000';
             if (watermarkColorInputEl) watermarkColorInputEl.value = '#ffffff';
