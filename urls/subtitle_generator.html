@@ -224,6 +224,13 @@
             opacity: 0.6;
             cursor: not-allowed;
         }
+        #subtitleBg {
+            margin-top: 6px;
+        }
+        #subtitleBgText {
+            padding: 3px;
+            margin-left: -8px;
+        }
         @media (max-width: 960px) {
             body {
                 padding: 12px;
@@ -301,6 +308,13 @@
                             <input type="color" id="strokeColor" value="#000000">
                             <input type="text" id="strokeColorInput" class="color-text-input" maxlength="7" placeholder="#000000">
                         </label>
+                        <label class="inline-field" for="subtitleBg">
+                            <input type="checkbox" id="subtitleBg" unchecked>
+                            <span id="subtitleBgText">字幕背景</span>
+                            <input type="color" id="subtitleBgColor" value="#ffffff" style="width: 0; height: 0; border: 0; padding: 0; position: relative; left: -80px; top: 10px;">
+                        </label>
+                    </div>
+                    <div class="inline-fields">
                         <label class="inline-field" for="watermarkText">
                             <span>水印文字</span>
                             <input type="text" id="watermarkText" class="watermark-text-input" placeholder="可选" value="CMOS都有">
@@ -314,7 +328,7 @@
                 </div>
                 <div class="field-group">
                     <span class="field-label" style="font-weight: bold;">字幕文本（每行一条，将依次生成多层图片）</span>
-                    <textarea id="subtitleText" placeholder="示例：&#10;第一行字幕&#10;第二行字幕&#10;第三行字幕"></textarea>
+                    <textarea id="subtitleText" placeholder="锦瑟无端五十弦，一弦一柱思华年。&#10;庄生晓梦迷蝴蝶，望帝春心托杜鹃。&#10;沧海月明珠有泪，蓝田日暖玉生烟。&#10;此情可待成追忆，只是当时已惘然。"></textarea>
                 </div>
                 <div class="button-row">
                     <button onclick="generateSubtitles()">生成字幕图片</button>
@@ -337,6 +351,16 @@
         const subtitleHeightInput = document.getElementById('subtitleHeight');
         const fontSizeInput = document.getElementById('fontSize');
         const fontFamilySelect = document.getElementById('fontFamily');
+        const subtitleBgCheckbox = document.getElementById('subtitleBg');
+        const subtitleBgColorInput = document.getElementById('subtitleBgColor');
+        const textColorInputEl = document.getElementById('textColor');
+        const strokeColorInputEl = document.getElementById('strokeColor');
+        const watermarkColorInputEl = document.getElementById('watermarkColor');
+        const textColorText = document.getElementById('textColorInput');
+        const strokeColorText = document.getElementById('strokeColorInput');
+        const watermarkColorText = document.getElementById('watermarkColorInput');
+        const watermarkTextEl = document.getElementById('watermarkText');
+        const colorTextEl = document.getElementById('subtitleBgText');
         const fontOptions = [
             ["SimHei", '黑体 SimHei'],
             ["SimSun", '宋体 SimSun'],
@@ -364,13 +388,48 @@
                 fontFamilySelect.appendChild(optionEl);
             });
         }
-        const textColorInputEl = document.getElementById('textColor');
-        const strokeColorInputEl = document.getElementById('strokeColor');
-        const watermarkColorInputEl = document.getElementById('watermarkColor');
-        const textColorText = document.getElementById('textColorInput');
-        const strokeColorText = document.getElementById('strokeColorInput');
-        const watermarkColorText = document.getElementById('watermarkColorInput');
-        const watermarkTextEl = document.getElementById('watermarkText');
+        function setColorText(color, alpha=0.3) {
+            // 应用颜色到文字的样式
+            let textColor = textColorInputEl.value;
+            let strokeColor = strokeColorInputEl.value;
+            colorTextEl.style.color = textColor;
+            colorTextEl.style.textShadow = `0 0 2px ${strokeColor}`;
+            // 应用到背景
+            colorTextEl.style.backgroundColor = hexToRgba(color, alpha);
+        }
+        function hexToRgba(hex, alpha=0.3) {
+            if (!hex) return `rgba(0, 0, 0, ${alpha})`;
+            let v = hex.trim();
+            if (v[0] === '#') v = v.slice(1);
+            if (v.length === 3) {
+                v = v.split('').map(function(c) { return c + c; }).join('');
+            }
+            if (v.length !== 6) return `rgba(0, 0, 0, ${alpha})`;
+            const num = parseInt(v, 16);
+            if (isNaN(num)) return `rgba(0, 0, 0, ${alpha})`;
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+            return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        }
+        if (subtitleBgCheckbox && subtitleBgColorInput) {
+            subtitleBgCheckbox.addEventListener('change', function() {
+                if (subtitleBgCheckbox.checked) {
+                    subtitleBgColorInput.click();
+                } else {
+                    colorTextEl.style.color = textColorInputEl.value;
+                    colorTextEl.style.background = 'none';
+                    subtitleBgColorInput.value = '#ffffff';
+                }
+            });
+            // 监控变化并设置到文字上
+            subtitleBgColorInput.addEventListener('change', (event) => {
+                setColorText(event.target.value);
+            });
+            subtitleBgColorInput.addEventListener('input', (event) => {
+                setColorText(event.target.value);
+            });
+        }
         function generateSubtitles() {
             // 获取样式设置
             const subtitleHeight = parseInt(subtitleHeightInput.value);
@@ -378,15 +437,17 @@
             const textColor = textColorInputEl.value;
             const strokeColor = strokeColorInputEl.value;
             const fontFamily = fontFamilySelect ? fontFamilySelect.value : '"Microsoft YaHei"';
+            const enableSubtitleBg = subtitleBgCheckbox ? subtitleBgCheckbox.checked : false;
+            const subtitleBgColor = subtitleBgColorInput ? hexToRgba(subtitleBgColorInput.value, 0.3) : 'rgba(0, 0, 0, 0.3)';
             
-            if (!imageInput.files[0]) {
-                alert('请先选择图片！');
-                return;
+            let lines = subtitleText.value.trim().split('\n');
+            if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
+                // alert('请输入字幕文本！');
+                lines = subtitleText.getAttribute('placeholder').trim().split('\n');
             }
 
-            const lines = subtitleText.value.trim().split('\n');
-            if (lines.length === 0 || (lines.length === 1 && lines[0] === '')) {
-                alert('请输入字幕文本！');
+            if (!imageInput.files[0]) {
+                alert('请先选择图片！');
                 return;
             }
 
@@ -411,6 +472,13 @@
                     
                     // 在原图上添加第一行字幕
                     if (lines.length > 0) {
+                        if (enableSubtitleBg) {
+                            originalCtx.save();
+                            originalCtx.fillStyle = subtitleBgColor;
+                            const bgY = height - subtitleHeight;
+                            originalCtx.fillRect(0, bgY, width, subtitleHeight);
+                            originalCtx.restore();
+                        }
                         originalCtx.fillStyle = textColor;
                         originalCtx.strokeStyle = strokeColor;
                         originalCtx.lineWidth = lineWidth;
@@ -456,6 +524,12 @@
                         );
                         
                         // 设置字幕样式
+                        if (enableSubtitleBg) {
+                            ctx.save();
+                            ctx.fillStyle = subtitleBgColor;
+                            ctx.fillRect(0, 1, width, subtitleHeight);
+                            ctx.restore();
+                        }
                         ctx.fillStyle = textColor;
                         ctx.strokeStyle = strokeColor;
                         ctx.lineWidth = lineWidth;
@@ -505,6 +579,8 @@
             if (subtitleHeightInput) subtitleHeightInput.value = 40;
             if (fontSizeInput) fontSizeInput.value = 30;
             if (fontFamilySelect) fontFamilySelect.value = '"Microsoft YaHei"';
+            if (subtitleBgCheckbox) subtitleBgCheckbox.checked = true;
+            if (subtitleBgColorInput) subtitleBgColorInput.value = '#000000';
             if (textColorInputEl) textColorInputEl.value = '#ffffff';
             if (strokeColorInputEl) strokeColorInputEl.value = '#000000';
             if (watermarkColorInputEl) watermarkColorInputEl.value = '#ffffff';
@@ -523,6 +599,10 @@
             if (saveButton) saveButton.style.display = 'none';
             if (fileNameEl) fileNameEl.textContent = '尚未选择图片';
             if (previewPanelEl) previewPanelEl.classList.add('no-image');
+            subtitleBgCheckbox.checked = false;
+            colorTextEl.style.color = 'black';
+            colorTextEl.style.background= 'none';
+            subtitleBgColorInput.value = '#ffffff';
         }
         function bindColorWithText(colorId, textId) {
             const colorInput = document.getElementById(colorId);
@@ -566,6 +646,26 @@
         bindColorWithText('textColor', 'textColorInput');
         bindColorWithText('strokeColor', 'strokeColorInput');
         bindColorWithText('watermarkColor', 'watermarkColorInput');
+
+        textColorText.addEventListener('input', function() {
+            colorTextEl.style.color = textColorInputEl.value;
+        });
+        textColorInputEl.addEventListener('change', function() {
+            colorTextEl.style.color = textColorInputEl.value;
+        });
+        textColorInputEl.addEventListener('input', function() {
+            colorTextEl.style.color = textColorInputEl.value;
+        });
+        strokeColorText.addEventListener('input', function() {
+            colorTextEl.style.textShadow = `0 0 2px ${strokeColorInputEl.value}`;
+        });
+        strokeColorInputEl.addEventListener('change', function() {
+            colorTextEl.style.textShadow = `0 0 2px ${strokeColorInputEl.value}`;
+        });
+        strokeColorInputEl.addEventListener('input', function() {
+            colorTextEl.style.textShadow = `0 0 2px ${strokeColorInputEl.value}`;
+        });
+
         if (imageInput) {
             imageInput.addEventListener('change', function() {
                 if (!imageInput.files || !imageInput.files[0]) return;
