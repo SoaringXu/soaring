@@ -341,6 +341,7 @@
 
     <script>
         const lineWidth = 3;
+        const maxWidth = 1024;
         const fileNameEl = document.getElementById('fileName');
         const previewPanelEl = document.getElementById('previewPanel');
         const imageInput = document.getElementById('imageInput');
@@ -446,30 +447,22 @@
                 lines = subtitleText.getAttribute('placeholder').trim().split('\n');
             }
 
-            if (!imageInput.files[0]) {
-                alert('请先选择图片！');
-                return;
-            }
-
             output.innerHTML = '';
             const reader = new FileReader();
             
-            reader.onload = function(e) {
+            const loadImage = (src) => {
                 const img = new Image();
-                img.src = e.target.result;
-                
+                img.src = src;
                 img.onload = function() {
-                    const scale = 900 / img.width;
-                    const width = 900;
+                    const scale = maxWidth / img.width;
+                    const width = maxWidth;
                     const height = Math.round(img.height * scale);
-                    
                     // 创建原图
                     const originalCanvas = document.createElement('canvas');
                     originalCanvas.width = width;
                     originalCanvas.height = height;
                     const originalCtx = originalCanvas.getContext('2d');
                     originalCtx.drawImage(img, 0, 0, width, height);
-                    
                     // 在原图上添加第一行字幕
                     if (lines.length > 0) {
                         if (enableSubtitleBg) {
@@ -489,7 +482,6 @@
                         originalCtx.strokeText(text, width/2, y);
                         originalCtx.fillText(text, width/2, y);
                     }
-                    
                     // 添加水印
                     const watermarkText = (watermarkTextEl?.value || '').trim();
                     if (watermarkText) {
@@ -501,20 +493,16 @@
                         originalCtx.fillText(watermarkText, width - 20, 50);
                         originalCtx.restore();
                     }
-                    
                     output.appendChild(originalCanvas);
-
                     // 为剩余字幕创建画布
                     lines.slice(1).forEach((line, index) => {
                         const canvas = document.createElement('canvas');
                         canvas.width = width;
                         canvas.height = subtitleHeight + 1;  // 高度加1用于分隔条
                         const ctx = canvas.getContext('2d');
-                        
                         // 添加半透明白色分隔条
                         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
                         ctx.fillRect(0, 0, width, 1);
-                        
                         // 截取原图底部区域并绘制
                         ctx.drawImage(img, 
                             0, img.height - (subtitleHeight / scale),
@@ -522,7 +510,6 @@
                             0, 1,  // 向下偏移1像素，为分隔条留空间
                             width, subtitleHeight
                         );
-                        
                         // 设置字幕样式
                         if (enableSubtitleBg) {
                             ctx.save();
@@ -535,7 +522,6 @@
                         ctx.lineWidth = lineWidth;
                         ctx.font = `${fontSize}px ${fontFamily}`;
                         ctx.textAlign = 'center';
-                        
                         // 添加字幕
                         const text = line.trim();
                         const y = subtitleHeight/2 + fontSize/3 + 1;  // 文字位置也要下移1像素
@@ -551,7 +537,18 @@
                     saveButton.style.display = 'block';
                 };
             };
-            reader.readAsDataURL(imageInput.files[0]);
+            if (imageInput.files[0]) {
+                reader.onload = (e) => loadImage(e.target.result);
+                reader.readAsDataURL(imageInput.files[0]);
+            } else { // 如果没有选择图片，则创建一张白色图片
+                const [w, h] = [800, 500];
+                const defaultCanvas = document.createElement('canvas');
+                defaultCanvas.width = w;
+                defaultCanvas.height = h;
+                defaultCanvas.getContext('2d').fillStyle = '#FFFFFF';
+                defaultCanvas.getContext('2d').fillRect(0, 0, w, h);
+                loadImage(defaultCanvas.toDataURL());
+            }
         }
         
         function saveImage() {
@@ -568,8 +565,8 @@
             });
             const link = document.createElement('a');
             const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-            const originalFileName = imageInput.files[0].name.split('.')[0];
-            link.download = `${originalFileName}_sg${timestamp}.png`;
+            const originalFileName = imageInput.files[0]?.name.split('.')[0] || 'SubtitleImage';
+            link.download = `${originalFileName}_CMOS_${timestamp}.png`;
             link.href = finalCanvas.toDataURL('image/png');
             link.click();
         }
@@ -602,6 +599,7 @@
             subtitleBgCheckbox.checked = false;
             colorTextEl.style.color = 'black';
             colorTextEl.style.background= 'none';
+            colorTextEl.style.textShadow = 'none';
             subtitleBgColorInput.value = '#ffffff';
         }
         function bindColorWithText(colorId, textId) {
@@ -677,7 +675,6 @@
                 reader.onload = function(e) {
                     const img = new Image();
                     img.onload = function() {
-                        const maxWidth = 900;
                         const scale = img.width > maxWidth ? maxWidth / img.width : 1;
                         const width = img.width * scale;
                         const height = img.height * scale;
