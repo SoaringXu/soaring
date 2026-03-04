@@ -352,6 +352,7 @@
                 <div class="option" data-value="data">MINIMAL_DATA</div>
                 <div class="option" data-value="glitch">GLITCH_DATA</div>
                 <div class="option" data-value="plexus">GEOM_PLEXUS</div>
+                <div class="option" data-value="mecha">MECHA_ARMOR</div>
             </div>
         </div>
     </div>
@@ -471,8 +472,9 @@ function switchStyle(val) {
 }
 
 function updateURL() {
+    exitSnapshotMode();
     const urlParams = new URLSearchParams(window.location.search);
-    const currentSeed = seedText.innerText.split(': ')[1].toLowerCase();
+    currentSeed = seedText.innerText.split(': ')[1].toLowerCase();
     const newUrl = `${window.location.origin}${window.location.pathname}?seed=${currentSeed}&style=${currentStyle}`;
     window.history.replaceState({ path: newUrl }, '', newUrl);
     document.getElementById('currentValueText').innerText = currentStyleName;
@@ -499,6 +501,9 @@ function renderLoop() {
     } else if (currentStyle === 'plexus') {
         currentStyleName = 'GEOM_PLEXUS'
         renderPlexusStyle();
+    } else if (currentStyle === 'mecha') {
+        currentStyleName = 'MECHA_ARMOR'
+        renderMechaStyle();
     } else {
         currentStyleName = 'MINIMAL_DATA'
         renderDataStyle();
@@ -781,6 +786,169 @@ function renderGlitchEffect(forceFull = false) {
             ctx.fillRect(0, Math.random() * h, w, 1);
         }
     }
+}
+
+function renderMechaStyle() {
+    const w = canvas.width;
+    const h = canvas.height;
+    const center = w / 2;
+    const sStr = currentSeed.padEnd(12, '0');
+    const diff = targetHue - currentHue;
+    currentHue += diff * 0.05; // 0.05 是平滑系数
+
+    // --- 样式参数提取 (利用种子字符串的不同段落) ---
+    const config = {
+        armor: parseInt(sStr[0], 16) % 7,      // 0-6
+        eye: parseInt(sStr[1], 16) % 6,        // 0-5
+        horn: parseInt(sStr[2], 16) % 5,       // 0-4
+        vent: parseInt(sStr[3], 16) % 5,       // 0-4
+        side: parseInt(sStr[4], 16) % 4,       // 0-3
+        decal: parseInt(sStr[5], 16) % 4,      // 0-3
+        size: 50 + (parseInt(sStr[6], 16) * 2) // 50-82
+    };
+
+    // 初始化画笔
+    ctx.lineJoin = 'miter';
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = `hsl(${currentHue}, 90%, 60%)`;
+    ctx.strokeStyle = `hsl(${currentHue}, 80%, 55%)`;
+
+    // 对称绘制工具
+    function drawSymmetric(drawFunc) {
+        ctx.save();
+        drawFunc(1); 
+        ctx.translate(w, 0); ctx.scale(-1, 1);
+        drawFunc(-1);
+        ctx.restore();
+    }
+
+    // --- 1. 绘制侧边护甲 (Side Plates) ---
+    drawSymmetric(() => {
+        ctx.beginPath();
+        const yBase = h * 0.5;
+        if (config.side === 1) { // 飞翼型
+            ctx.moveTo(center + config.size, yBase);
+            ctx.lineTo(center + config.size + 30, yBase - 40);
+            ctx.lineTo(center + config.size + 20, yBase + 20);
+        } else if (config.side === 2) { // 进气口型
+            ctx.rect(center + config.size - 5, yBase, 15, 40);
+        } else if (config.side === 3) { // 盾鳞型
+            ctx.moveTo(center + config.size, yBase - 20);
+            ctx.lineTo(center + config.size + 15, yBase);
+            ctx.lineTo(center + config.size, yBase + 20);
+        }
+        ctx.stroke();
+    });
+
+    // --- 2. 绘制主外壳 (Armor Base) ---
+    drawSymmetric(() => {
+        ctx.fillStyle = `hsla(${currentHue}, 70%, 15%, 0.5)`;
+        ctx.beginPath();
+        const top = h * 0.2, bottom = h * 0.9;
+        const width = config.size;
+        
+        switch(config.armor) {
+            case 0: // 尖锐V型
+                ctx.moveTo(center, top);
+                ctx.lineTo(center + width + 20, h * 0.5); 
+                ctx.quadraticCurveTo(center + width, h * 0.5, center + width - 20, bottom);
+                ctx.lineTo(center + width - 20, bottom);
+                ctx.lineTo(center, h * 0.95);
+                break;
+            case 1: // 块状方型
+                ctx.moveTo(center, top);
+                ctx.lineTo(center + width + 10, top);
+                ctx.lineTo(center + width + 20, top + 20);
+                ctx.lineTo(center + width, bottom - 50);
+                ctx.lineTo(center, bottom); 
+                break;
+            case 2: // 弧形
+                ctx.moveTo(center, top);
+                ctx.quadraticCurveTo(center + width + 80, h * 0.5, center, bottom);
+                break;
+            case 3: // 复合折线
+                ctx.moveTo(center, top);
+                ctx.lineTo(center + width + 10, top + 30);
+                ctx.lineTo(center + width + 20, top - 30);
+                ctx.lineTo(center + width, bottom - 50);
+                ctx.lineTo(center, bottom); 
+                break;
+            case 4: // 宽阔重装
+                ctx.moveTo(center, top);
+                ctx.lineTo(center + width + 10, top + 60);
+                ctx.lineTo(center + width + 40, top + 120);
+                ctx.lineTo(center + width + 40, top + 140);
+                ctx.lineTo(center + width, bottom);
+                ctx.lineTo(center, bottom);
+                break;
+            case 5:
+                ctx.moveTo(center, top);
+                ctx.lineTo(center + width + 20, h * 0.5); 
+                ctx.lineTo(center + width - 20, bottom - 10);
+                ctx.lineTo(center + width - 10, bottom);
+                ctx.lineTo(center, h * 0.95);
+                break;
+            default: // 极简窄型
+                ctx.moveTo(center, top);
+                ctx.lineTo(center + width + 20, bottom);
+                ctx.lineTo(center, bottom);
+        }
+        ctx.stroke(); ctx.fill();
+    });
+
+    // --- 3. 绘制眼部 (Core Optics) ---
+    ctx.fillStyle = `hsl(${currentHue}, 100%, 75%)`;
+    drawSymmetric(() => {
+        const ey = h * 0.45, ex = center + 20 + (parseInt(sStr[7],16));
+        ctx.beginPath();
+        switch(config.eye) {
+            case 0: ctx.arc(ex, ey, 8, 0, Math.PI*2); break; // 圆形镜头
+            case 1: ctx.rect(ex-10, ey-2, 25, 4); break; // 扫描条
+            case 2: ctx.moveTo(ex-10, ey-5); ctx.lineTo(ex+15, ey); ctx.lineTo(ex-10, ey+5); break; // 锐利
+            case 3: ctx.rect(ex-5, ey-5, 10, 10); ctx.rect(ex+8, ey-5, 4, 10); break; // 双重
+            case 4: ctx.moveTo(center+5, ey-10); ctx.lineTo(center+config.size-10, ey+5); ctx.lineTo(center+5, ey+10); break; // 全覆盖
+            default: ctx.arc(ex, ey, 5, 0, Math.PI*2); ctx.arc(ex+15, ey+10, 3, 0, Math.PI*2);
+        }
+        ctx.fill(); ctx.stroke();
+    });
+
+    // --- 4. 绘制天线/头部组件 (Head Gear) ---
+    drawSymmetric(() => {
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        const ty = h * 0.22;
+        if (config.horn === 1) { // 经典V天线
+            ctx.moveTo(center, ty); ctx.lineTo(center + config.size + 10, ty - 50);
+        } else if (config.horn === 2) { // 垂直雷达
+            ctx.moveTo(center + 20, ty); ctx.lineTo(center + 20, ty - 60);
+        } else if (config.horn === 3) { // 后掠式
+            ctx.moveTo(center + 10, ty); ctx.quadraticCurveTo(center + 60, ty - 20, center + 80, ty + 20);
+        } else if (config.horn === 4) { // 环形传感器
+            ctx.arc(center + 30, ty - 20, 15, 0, Math.PI);
+        }
+        ctx.stroke();
+    });
+
+    // --- 5. 绘制通风口 (Chin/Vent) ---
+    drawSymmetric(() => {
+        const vy = h * 0.75;
+        ctx.beginPath();
+        if (config.vent === 1) { // 三重格栅
+            for(let i=0; i<3; i++) { ctx.moveTo(center + 5, vy + i*8); ctx.lineTo(center + 25, vy + i*8 - 5); }
+        } else if (config.vent === 2) { // 动力管
+            ctx.bezierCurveTo(center + 10, vy, center + 40, vy + 20, center + 20, h * 0.95);
+        } else if (config.vent === 3) { // 护口板
+            ctx.rect(center + 2, vy, 20, 20);
+        }
+        ctx.stroke();
+    });
+
+    // --- 6. 绘制非对称细节 (Decals/Numbers) ---
+    // ctx.shadowBlur = 0;
+    // ctx.fillStyle = `hsla(${currentHue}, 90%, 60%, 0.8)`;
+    // ctx.font = "bold 10px monospace";
+    // ctx.fillText(`IDX_${config.armor}`, center + 80, h);
+    // ctx.fillRect(center - 20, h * 0.2, 40, 2); // 额头横条
 }
 
 // 启动
