@@ -70,8 +70,10 @@
 
         .controls {
             margin-top: 1.5rem;
-            display: flex;
-            gap: 0;
+            display: grid;
+            grid-template-columns: repeat(2, 50%);
+            grid-template-rows: repeat(2, 50%);
+            gap: 2px;
         }
 
         button {
@@ -84,6 +86,7 @@
             transition: all 0.3s;
             position: relative;
             overflow: hidden;
+            clip-path: polygon(0 0, 100% 0, 100% 70%, 92% 100%, 0 100%);
         }
 
         button:hover {
@@ -125,6 +128,9 @@
         }
         #randomize::after {
             content: "RANDOMIZE";
+        }
+        #snapshot::after {
+            content: "SNAP_SHOT";
         }
         #download::after {
             content: "EXPORT_PNG";
@@ -257,6 +263,79 @@
             0% { top: 0; }
             100% { top: 100%; }
         }
+        @keyframes flicker {
+            0% { opacity: 0.98; }
+            5% { opacity: 0.95; }
+            10% { opacity: 0.99; }
+            100% { opacity: 1; }
+        }
+
+        .canvas-section.glitch-active {
+            animation: flicker 0.1s infinite;
+        }
+
+        /* 增加一种扫描线纹理 */
+        .canvas-section::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.1) 50%
+            ), linear-gradient(
+                90deg, 
+                rgba(255, 0, 0, 0.03), 
+                rgba(0, 255, 0, 0.01), 
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 3px, 3px 100%;
+            pointer-events: none;
+        }
+
+        /* 预览图初始状态：隐藏且锁定大小 */
+        #staticPreview {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: none; /* 初始隐藏 */
+            z-index: 100;
+            object-fit: contain;
+            background: var(--bg);
+        }
+
+        /* 拍照瞬间的闪光反馈 */
+        .flash-effect {
+            animation: flash 0.4s ease-out;
+        }
+
+        @keyframes flash {
+            0% { filter: brightness(5); }
+            100% { filter: brightness(1); }
+        }
+
+        /* 隐藏动画的辅助类 */
+        .animation-paused .scan-line {
+            display: none !important;
+        }
+
+        .resume-hint {
+            display: none;
+            position: absolute;
+            bottom: -30px;
+            width: 100%;
+            text-align: center;
+            font-size: 16px;
+            color: var(--primary);
+            letter-spacing: 1px;
+            cursor: pointer;
+        }
+
+        .resume-hint:hover {
+            background: var(--primary-color);
+            color: var(--bg-dark);
+        }
     </style>
 </head>
 <body id="bg-grid">
@@ -271,6 +350,7 @@
             </div>
             <div class="options-panel" id="optionsPanel">
                 <div class="option" data-value="data">MINIMAL_DATA</div>
+                <div class="option" data-value="glitch">GLITCH_DATA</div>
                 <div class="option" data-value="plexus">GEOM_PLEXUS</div>
             </div>
         </div>
@@ -280,20 +360,27 @@
         <span id="timestamp">ID: NULL</span>
     </div>
 
-    <div class="canvas-wrapper">
+    <div id="avatarContainer" class="canvas-wrapper">
         <div class="scan-line"></div>
         <canvas id="avatarCanvas" width="300" height="300"></canvas>
+        <img id="staticPreview" class="hidden-snapshot" alt="Avatar Snapshot">
+        <div class="corner-decoration bottom-right"></div>
+        <br />
+        <div id="resumeBtn" class="resume-hint" onclick="exitSnapshotMode()">
+            [ RESUME_LIVE_FEED ]
+        </div>
     </div>
 
-    <div class="info-panel">
+    <div id="infoPanel" class="info-panel">
         <div>Algorithm: Symmetric_Data_v1.0</div>
         <div id="seedText">Seed: --------</div>
     </div>
 
     <div class="controls">
         <button id="randomize" onclick="generateAvatar()">Randomize</button>
-        <button id="download" onclick="downloadAvatar()">Export_PNG</button>
+        <button id="snapshot" onclick="takeSnapshot()">Snap_Shot</button>
         <button id="copyLink" onclick="copyShareLink(this)">Copy_Link</button>
+        <button id="download" onclick="downloadAvatar()">Export_PNG</button>
     </div>
 </div>
 
@@ -308,12 +395,12 @@ document.addEventListener('DOMContentLoaded', () => {
     trigger.addEventListener('click', (e) => {
         e.stopPropagation(); // 阻止冒泡到 window
         panel.classList.toggle('active');
-        console.log("Status: Dropdown toggled"); 
     });
 
     // 2. 点击选项
     options.forEach(opt => {
         opt.addEventListener('click', (e) => {
+            exitSnapshotMode();
             const val = opt.getAttribute('data-value');
             const label = opt.innerText;
             
@@ -346,6 +433,8 @@ btns.forEach(btn => {
 });
 
 const canvas = document.getElementById('avatarCanvas');
+const preview = document.getElementById('staticPreview');
+const infoPanel = document.getElementById('infoPanel');
 const ctx = canvas.getContext('2d');
 const seedText = document.getElementById('seedText');
 const idText = document.getElementById('timestamp');
@@ -355,6 +444,8 @@ let currentHue = 0;
 let targetHue = 0;
 let gridData = []; // 存储当前的像素阵列
 let currentStyle = 'data'; // 默认为极简数据
+let currentStyleName = 'MINIMAL_DATA';
+let currentSeed = '';
 let points = [];           // 专门为 Plexus 存储点数据
 const MAX_POINTS = 40;     // 连线点的数量
 
@@ -365,8 +456,7 @@ function init() {
     const urlStyle = urlParams.get('style') || 'data';
 
     // 同步下拉框 UI
-    // document.getElementById('styleMode').value = urlStyle;
-    updateSelectorUI(urlStyle);
+    updateURL();
     currentStyle = urlStyle;
 
     renderLoop(); // 启动持续渲染循环
@@ -385,6 +475,7 @@ function updateURL() {
     const currentSeed = seedText.innerText.split(': ')[1].toLowerCase();
     const newUrl = `${window.location.origin}${window.location.pathname}?seed=${currentSeed}&style=${currentStyle}`;
     window.history.replaceState({ path: newUrl }, '', newUrl);
+    document.getElementById('currentValueText').innerText = currentStyleName;
 }
 
 function initPlexus() {
@@ -402,10 +493,15 @@ function initPlexus() {
 function renderLoop() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     
-    if (currentStyle === 'data') {
-        renderDataStyle();
+    if (currentStyle === 'glitch') {
+        currentStyleName = 'GLITCH_DATA'
+        renderGlitchStyle();
     } else if (currentStyle === 'plexus') {
+        currentStyleName = 'GEOM_PLEXUS'
         renderPlexusStyle();
+    } else {
+        currentStyleName = 'MINIMAL_DATA'
+        renderDataStyle();
     }
 
     requestAnimationFrame(renderLoop);
@@ -530,6 +626,34 @@ function generateAvatar(passedSeed = null, updateHistory = true, shouldUpdateURL
     }
 }
 
+let takeSnapshotFlag = false;
+function takeSnapshot() {
+    const canvas = document.getElementById('avatarCanvas');
+    const container = document.getElementById('avatarContainer');
+    const resumeBtn = document.getElementById('resumeBtn');
+
+    // 1. 如果是 Glitch 模式，先触发一次强制故障渲染
+    if (currentStyle === 'glitch') {
+        renderGlitchEffect(true); 
+    }
+
+    // 2. 将 Canvas 内容转换为图片并显示
+    const dataURL = canvas.toDataURL('image/png');
+    preview.src = dataURL;
+    preview.style.display = 'block';
+    
+    // 3. 隐藏动画和 Canvas
+    canvas.style.visibility = 'hidden';
+    infoPanel.style.visibility = 'hidden';
+    container.classList.add('animation-paused');
+    container.classList.add('flash-effect');
+    resumeBtn.style.display = 'block';
+
+    // 4. 清除闪光效果类（以便下次再次触发）
+    setTimeout(() => container.classList.remove('flash-effect'), 400);
+    takeSnapshotFlag = true;
+}
+
 // 新增：复制链接功能
 function copyShareLink(btn) {
     const shareUrl = window.location.href;
@@ -545,19 +669,118 @@ function copyShareLink(btn) {
 }
 
 function downloadAvatar() {
+    // 如果是故障模式，先手动触发一次强力故障
+    if (currentStyle === 'glitch') {
+        renderGlitchEffect(true); // 传入 true 表示“导出增强模式”
+    }
+
     const link = document.createElement('a');
-    link.download = `neural_avatar_${seedText.innerText.split(': ')[1]}.png`;
-    link.href = canvas.toDataURL();
+    const timestamp = Math.floor(Date.now() / 1000);
+    link.download = `neural_avatar_${currentSeed}_${timestamp}.png`;
+    if (takeSnapshotFlag) {
+        link.href = preview.src;
+    } else {
+        link.href = canvas.toDataURL();
+    }
     link.click();
+
+    canvas.style.filter = 'brightness(5)';
+    setTimeout(() => {
+        canvas.style.filter = 'none';
+    }, 1000);
 }
 
-// 别忘了在 init 函数中初始化显示名称
-function updateSelectorUI(style) {
-    const labels = {
-        'data': 'MINIMAL_DATA',
-        'plexus': 'GEOM_PLEXUS'
-    };
-    document.getElementById('currentValueText').innerText = labels[style] || 'MINIMAL_DATA';
+// 退出预览，回到实时动画
+function exitSnapshotMode() {
+    const canvas = document.getElementById('avatarCanvas');
+    const preview = document.getElementById('staticPreview');
+    const container = document.getElementById('avatarContainer');
+    const resumeBtn = document.getElementById('resumeBtn');
+
+    preview.style.display = 'none';
+    canvas.style.visibility = 'visible';
+    infoPanel.style.visibility = 'visible';
+    container.classList.remove('animation-paused');
+    resumeBtn.style.display = 'none';
+}
+
+// Glitch 专用变量
+let glitchTimer = 0;
+
+function slicing(ctx, cnt=5, sliceParam=20, offsetParam=40) {
+    const w = canvas.width;
+    const h = canvas.height;
+    for (let i = 0; i < cnt; i++) {
+        let x = Math.random() * w;
+        let y = Math.random() * h;
+        let sliceH = 5 + Math.random() * sliceParam; // 切片高度
+        let offset = (Math.random() - 0.5) * offsetParam; // 偏移量
+        // 复制一部分画布再贴回去，产生位移
+        ctx.drawImage(canvas, 0, y, w, sliceH, offset, y, w, sliceH);
+    }
+}
+
+function rgbSplit(ctx, alpha=0.5, rOffset=2, bOffset=-2, shadowBlur=5) {
+    // --- 算法 B: RGB 分离 (RGB Split) ---
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.globalAlpha = alpha; 
+    
+    // 红色通道偏移
+    if (shadowBlur !== 0) {
+        ctx.shadowColor = 'red';
+        ctx.shadowBlur = shadowBlur;
+    }
+    ctx.drawImage(canvas, rOffset, 0); 
+    
+    // 蓝色通道偏移
+    if (shadowBlur !== 0) {
+        ctx.shadowColor = 'blue';
+        ctx.shadowBlur = shadowBlur;
+    }
+    ctx.drawImage(canvas, bOffset, 0);
+    
+    ctx.restore();
+}
+
+function renderGlitchStyle() {
+    // 1. 先绘制基础图形 (我们可以复用 Data 风格的逻辑作为底图)
+    renderDataStyle(); 
+
+    // 2. 控制故障频率：不是每一帧都闪，随机触发
+    if (Math.random() > 0.85) {
+        const ctx = canvas.getContext('2d');
+        const w = canvas.width;
+        const h = canvas.height;
+
+        // --- 算法 A: 位移切割 (Slicing) ---
+        // 随机切 3-5 个水平条进行偏移
+        slicing(ctx, 5)
+
+        // --- 算法 B: RGB 分离 (RGB Split) ---
+        // 通过设置不同的透明度和合成模式模拟
+        rgbSplit(ctx)
+
+        // --- 算法 C: 随机白噪点 ---
+        if (Math.random() > 0.9) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.2})`;
+            ctx.fillRect(0, Math.random() * h, w, 1);
+        }
+    }
+}
+
+// 修改后的逻辑，抽离出渲染核心
+function renderGlitchEffect(forceFull = false) {
+    const w = canvas.width;
+    const h = canvas.height;
+    // 如果是强制模式或随机命中
+    if (forceFull || Math.random() > 0.85) {
+        slicing(ctx, 5, 20, 40)
+        if (Math.random() > 0.9) {
+            ctx.fillStyle = `rgba(255, 255, 255, ${Math.random() * 0.2})`;
+            ctx.fillRect(0, Math.random() * h, w, 1);
+        }
+    }
 }
 
 // 启动
