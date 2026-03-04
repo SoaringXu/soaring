@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AVATAR_GEN | 头像生成器</title>
+    <style>
+        :root {
+            --primary-color: #00f3ff; /* 赛博青 */
+            --bg-dark: #0a0b10;
+            --panel-bg: rgba(16, 18, 27, 0.8);
+            --font-mono: 'Fira Code', 'Courier New', monospace;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-dark);
+            color: var(--primary-color);
+            font-family: var(--font-mono);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            text-transform: uppercase;
+        }
+
+        /* 科技感背景纹理 */
+        body::before {
+            content: "";
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background-image: linear-gradient(0deg, transparent 24%, rgba(0, 243, 255, .05) 25%, rgba(0, 243, 255, .05) 26%, transparent 27%, transparent 74%, rgba(0, 243, 255, .05) 75%, rgba(0, 243, 255, .05) 76%, transparent 77%, transparent), linear-gradient(90deg, transparent 24%, rgba(0, 243, 255, .05) 25%, rgba(0, 243, 255, .05) 26%, transparent 27%, transparent 74%, rgba(0, 243, 255, .05) 75%, rgba(0, 243, 255, .05) 76%, transparent 77%, transparent);
+            background-size: 50px 50px;
+            z-index: -1;
+        }
+
+        .container {
+            overflow: visible !important;
+            background: var(--panel-bg);
+            padding: 2rem;
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 0 20px rgba(0, 243, 255, 0.2);
+            position: relative;
+            clip-path: polygon(0 0, 100% 0, 100% 90%, 90% 100%, 0 100%); /* 切角设计 */
+        }
+
+        .header {
+            font-size: 0.8rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.3);
+            padding-bottom: 0.5rem;
+        }
+
+        .canvas-wrapper {
+            position: relative;
+            padding: 10px;
+            border: 1px dashed rgba(0, 243, 255, 0.5);
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            display: block;
+            image-rendering: pixelated; /* 保持像素清晰 */
+        }
+
+        .controls {
+            margin-top: 1.5rem;
+            display: flex;
+            gap: 0;
+        }
+
+        button {
+            background: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+            padding: 0.6rem 0.8rem;
+            cursor: pointer;
+            font-family: var(--font-mono);
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            background: var(--primary-color);
+            color: var(--bg-dark);
+            box-shadow: 0 0 15px var(--primary-color);
+        }
+
+        .info-panel {
+            margin-top: 1rem;
+            font-size: 0.7rem;
+            color: rgba(0, 243, 255, 0.6);
+        }
+
+        /* 扫描线动画 */
+        .scan-line {
+            position: absolute;
+            width: 100%;
+            height: 2px;
+            background: var(--primary-color);
+            opacity: 0.5;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            animation: scan 3s linear infinite;
+        }
+
+        button::after {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: var(--primary-color);
+            color: var(--bg-dark);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transform: translate(0, 100%);
+            transition: transform 0.5s cubic-bezier(0.2, 1, 0.3, 1);
+        }
+        #randomize::after {
+            content: "RANDOMIZE";
+        }
+        #download::after {
+            content: "EXPORT_PNG";
+        }
+        #copyLink::after {
+            content: "COPY_LINK";
+        }
+        #copyed::after {
+            content: "COPIED!";
+        }
+
+        button:hover::after {
+            transform: translate(0, 0);
+        }
+
+        /* 简单的背景视差逻辑 */
+        #bg-grid {
+            position: fixed;
+            top: -5%; left: -5%;
+            width: 110%; height: 110%;
+            background-image: 
+                linear-gradient(rgba(0, 243, 255, 0.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 243, 255, 0.05) 1px, transparent 1px);
+            background-size: 40px 40px;
+            z-index: -1;
+            transition: transform 0.1s ease-out;
+        }
+
+        .style-selector {
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            margin-right: 20px;
+        }
+
+        .cyber-select-container {
+            margin-bottom: 20px;
+            z-index: 100;
+        }
+
+        .label {
+            font-size: 0.65rem;
+            color: rgba(0, 243, 255, 0.5);
+            margin-bottom: 5px;
+            letter-spacing: 1px;
+        }
+
+        .custom-select {
+            position: relative;
+            width: 220px;
+            z-index: 999; 
+            border: 1px solid var(--primary-color);
+            background: rgba(0, 20, 30, 0.8);
+            cursor: pointer;
+            clip-path: polygon(0 0, 100% 0, 100% 70%, 92% 100%, 0 100%);
+        }
+        .custom-select:hover {
+            clip-path: none;
+        }
+
+        .selected-value {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+        }
+
+        /* 内部扫描线 */
+        .glitch-line {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 1px;
+            background: var(--primary-color);
+            box-shadow: 0 0 5px var(--primary-color);
+            animation: scan-vertical 4s infinite;
+        }
+
+        .options-panel {
+            display: none; /* 默认隐藏 */
+            position: absolute;
+            top: 100%;
+            left: -1px;
+            width: calc(100% + 2px);
+            background: var(--bg-dark);
+            border: 1px solid var(--primary-color);
+            box-shadow: 0 10px 30px rgba(0, 243, 255, 0.8);
+            z-index: 10000 !important;
+        }
+
+        .options-panel.active {
+            display: block !important;
+        }
+
+        .option {
+            padding: 10px 15px;
+            font-size: 0.8rem;
+            transition: all 0.2s;
+            border-bottom: 1px solid rgba(0, 243, 255, 0.1);
+            z-index: 10000 !important;
+        }
+
+        .option:hover {
+            background: var(--primary-color);
+            color: var(--bg-dark);
+            padding-left: 25px; /* 悬停偏移感 */
+        }
+
+        /* 电子方格纹理背景 */
+        .options-panel::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: radial-gradient(var(--primary-color) 0.5px, transparent 0.5px);
+            background-size: 4px 4px;
+            opacity: 0.1;
+            pointer-events: none;
+        }
+
+        @keyframes scan-vertical {
+            0% { transform: translateY(0); opacity: 0; }
+            50% { opacity: 1; }
+            100% { transform: translateY(-30px); opacity: 0; }
+        }
+
+        @keyframes scan {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+    </style>
+</head>
+<body id="bg-grid">
+<div class="container">
+    <div class="cyber-select-container">
+        <div class="label">VISUAL_ENGINE_MODE:</div>
+        <div class="custom-select" id="customSelectContainer">
+            <div class="selected-value" id="triggerBtn">
+                <span id="currentValueText">MINIMAL_DATA</span>
+                <span style="font-size: 0.6rem; opacity: 0.5;">▼</span>
+                <div class="glitch-line"></div>
+            </div>
+            <div class="options-panel" id="optionsPanel">
+                <div class="option" data-value="data">MINIMAL_DATA</div>
+                <div class="option" data-value="plexus">GEOM_PLEXUS</div>
+            </div>
+        </div>
+    </div>
+    <div class="header">
+        <span>Status: Online</span>
+        <span id="timestamp">ID: NULL</span>
+    </div>
+
+    <div class="canvas-wrapper">
+        <div class="scan-line"></div>
+        <canvas id="avatarCanvas" width="300" height="300"></canvas>
+    </div>
+
+    <div class="info-panel">
+        <div>Algorithm: Symmetric_Data_v1.0</div>
+        <div id="seedText">Seed: --------</div>
+    </div>
+
+    <div class="controls">
+        <button id="randomize" onclick="generateAvatar()">Randomize</button>
+        <button id="download" onclick="downloadAvatar()">Export_PNG</button>
+        <button id="copyLink" onclick="copyShareLink(this)">Copy_Link</button>
+    </div>
+</div>
+
+<script>
+// 使用更现代的事件监听方式，避免 HTML 属性里的 onclick 失效
+document.addEventListener('DOMContentLoaded', () => {
+    const trigger = document.getElementById('triggerBtn');
+    const panel = document.getElementById('optionsPanel');
+    const options = document.querySelectorAll('.option');
+
+    // 1. 点击触发器切换显示
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation(); // 阻止冒泡到 window
+        panel.classList.toggle('active');
+        console.log("Status: Dropdown toggled"); 
+    });
+
+    // 2. 点击选项
+    options.forEach(opt => {
+        opt.addEventListener('click', (e) => {
+            const val = opt.getAttribute('data-value');
+            const label = opt.innerText;
+            
+            // 更新 UI
+            document.getElementById('currentValueText').innerText = label;
+            panel.classList.remove('active');
+            
+            // 执行切换逻辑 (确保你之前的 switchStyle 函数存在)
+            if (typeof switchStyle === 'function') {
+                switchStyle(val);
+            }
+        });
+    });
+
+    // 3. 点击外部自动关闭
+    window.addEventListener('click', () => {
+        panel.classList.remove('active');
+    });
+});
+
+const btns = document.querySelectorAll('button');
+btns.forEach(btn => {
+    btn.addEventListener('mousemove', (e) => {
+        const x = (e.clientX / window.innerWidth - 0.5) * 20; // 移动范围 20px
+        const y = (e.clientY / window.innerHeight - 0.5) * 20;
+        const bgGrid = document.getElementById('bg-grid');
+        if (!bgGrid) return;
+        bgGrid.style.transform = `translate(${x}px, ${y}px)`;
+    });
+});
+
+const canvas = document.getElementById('avatarCanvas');
+const ctx = canvas.getContext('2d');
+const seedText = document.getElementById('seedText');
+const idText = document.getElementById('timestamp');
+
+// 新增全局变量控制过渡
+let currentHue = 0;
+let targetHue = 0;
+let gridData = []; // 存储当前的像素阵列
+let currentStyle = 'data'; // 默认为极简数据
+let points = [];           // 专门为 Plexus 存储点数据
+const MAX_POINTS = 40;     // 连线点的数量
+
+// --- 核心逻辑：从 URL 获取或生成新种子 ---
+function init() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlSeed = urlParams.get('seed');
+    const urlStyle = urlParams.get('style') || 'data';
+
+    // 同步下拉框 UI
+    // document.getElementById('styleMode').value = urlStyle;
+    updateSelectorUI(urlStyle);
+    currentStyle = urlStyle;
+
+    renderLoop(); // 启动持续渲染循环
+    generateAvatar(urlSeed || null, false);
+}
+
+function switchStyle(val) {
+    currentStyle = val;
+    if (val === 'plexus') initPlexus(); // 切换时初始化点
+    // 关键：切换风格也要更新 URL 状态
+    updateURL();
+}
+
+function updateURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentSeed = seedText.innerText.split(': ')[1].toLowerCase();
+    const newUrl = `${window.location.origin}${window.location.pathname}?seed=${currentSeed}&style=${currentStyle}`;
+    window.history.replaceState({ path: newUrl }, '', newUrl);
+}
+
+function initPlexus() {
+    points = [];
+    for (let i = 0; i < MAX_POINTS; i++) {
+        points.push({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            vx: (Math.random() - 0.5) * 1.5,
+            vy: (Math.random() - 0.5) * 1.5
+        });
+    }
+}
+
+function renderLoop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    if (currentStyle === 'data') {
+        renderDataStyle();
+    } else if (currentStyle === 'plexus') {
+        renderPlexusStyle();
+    }
+
+    requestAnimationFrame(renderLoop);
+}
+
+function renderDataStyle() {
+    // 1. 颜色插值 (让 currentHue 追赶 targetHue)
+    const diff = targetHue - currentHue;
+    currentHue += diff * 0.05; // 0.05 是平滑系数
+
+    // 2. 绘图逻辑
+    const size = 8;
+    const cellSize = canvas.width / size;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    
+    ctx.shadowBlur = 15;
+    ctx.shadowColor = `hsl(${currentHue}, 80%, 60%)`;
+    ctx.fillStyle = `hsl(${currentHue}, 70%, 50%)`;
+
+    gridData.forEach((col, x) => {
+        col.forEach((isFilled, y) => {
+            if (isFilled) {
+                // 绘制带有一点圆角的矩形增加精致感
+                ctx.fillRect(x * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+                ctx.fillRect((size - 1 - x) * cellSize + 1, y * cellSize + 1, cellSize - 2, cellSize - 2);
+            }
+        });
+    });
+}
+
+function renderPlexusStyle() {
+    const diff = targetHue - currentHue;
+    currentHue += diff * 0.05; // 0.05 是平滑系数
+    ctx.shadowBlur = 0; // Plexus 不需要太强的全局发光，否则会糊成一团
+    
+    // 1. 更新并绘制点
+    points.forEach((p, i) => {
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // 边界碰撞检查
+        if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+        if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+        ctx.fillStyle = `hsl(${currentHue}, 80%, 60%)`;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 2. 连线算法 (核心挑战：双重循环)
+        for (let j = i + 1; j < points.length; j++) {
+            const p2 = points[j];
+            const dx = p.x - p2.x;
+            const dy = p.y - p2.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+
+            if (dist < 80) { // 连线阈值
+                ctx.strokeStyle = `hsla(${currentHue}, 70%, 50%, ${1 - dist / 80})`;
+                ctx.lineWidth = 0.8;
+                ctx.beginPath();
+                ctx.moveTo(p.x, p.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.stroke();
+            }
+        }
+    });
+}
+
+function generateAvatar(passedSeed = null, updateHistory = true, shouldUpdateURL = true) {
+    // 1. 确定种子
+    const seed = passedSeed || Math.random().toString(16).slice(2, 10);
+    targetHue = parseInt(seed.substring(0, 2), 16) % 360;
+
+    // 如果是 Plexus 模式，我们可以根据 seed 改变点的运动速度或初始位置
+    if (currentStyle === 'plexus') {
+        initPlexus(); 
+    }
+
+    // 更新数据模型而非直接绘图
+    gridData = [];
+    
+    // 2. 更新 UI 显示
+    seedText.innerText = `Seed: ${seed.toUpperCase()}`;
+    idText.innerText = `ID: ${Math.floor(Date.now()/1000)}`;
+
+    // 3. 如果需要，同步更新 URL 地址栏
+    if (updateHistory) {
+        const newUrl = `${window.location.origin}${window.location.pathname}?seed=${seed}`;
+        window.history.replaceState({ path: newUrl }, '', newUrl);
+    }
+
+    // --- 渲染逻辑 ---
+    const size = 8;
+    const cellSize = canvas.width / size;
+    const hue = parseInt(seed.substring(0, 2), 16) % 360;
+
+    for (let x = 0; x < size / 2; x++) {
+        gridData[x] = [];
+        for (let y = 0; y < size; y++) {
+            const val = parseInt(seed, 16) >> (x + y);
+            gridData[x][y] = (val & 1) === 1;
+        }
+    }
+    
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.shadowBlur = 12;
+    ctx.shadowColor = `hsl(${hue}, 80%, 60%)`;
+    ctx.fillStyle = `hsl(${hue}, 70%, 50%)`;
+
+    for (let x = 0; x < size / 2; x++) {
+        for (let y = 0; y < size; y++) {
+            // 使用 seed 的不同部分来决定像素
+            const val = parseInt(seed, 16) >> (x + y);
+            if ((val & 1) === 1) {
+                ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+                ctx.fillRect((size - 1 - x) * cellSize, y * cellSize, cellSize, cellSize);
+            }
+        }
+    }
+    if (shouldUpdateURL) {
+        updateURL();
+    }
+}
+
+// 新增：复制链接功能
+function copyShareLink(btn) {
+    const shareUrl = window.location.href;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        const originalText = btn.innerText;
+        btn.innerText = "COPIED!";
+        btn.id = "copyed";
+        setTimeout(() => {
+            btn.innerText = originalText
+            btn.id = "copyLink"
+        }, 2000);
+    });
+}
+
+function downloadAvatar() {
+    const link = document.createElement('a');
+    link.download = `neural_avatar_${seedText.innerText.split(': ')[1]}.png`;
+    link.href = canvas.toDataURL();
+    link.click();
+}
+
+// 别忘了在 init 函数中初始化显示名称
+function updateSelectorUI(style) {
+    const labels = {
+        'data': 'MINIMAL_DATA',
+        'plexus': 'GEOM_PLEXUS'
+    };
+    document.getElementById('currentValueText').innerText = labels[style] || 'MINIMAL_DATA';
+}
+
+// 启动
+init();
+</script>
+
+</body>
+</html>
