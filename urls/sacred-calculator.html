@@ -719,6 +719,7 @@
 
     // 自定义下拉框逻辑
     let currentSelectedValue = "";
+    let isLayerView = false;  // 当前是否显示分层视图
     const toggleBtn = document.getElementById('toggleViewBtn');
 
     function populateCustomSelect() {
@@ -738,6 +739,8 @@
                 renderRecipes(name);
                 isLayerView = false;
                 toggleBtn.innerHTML = '✨揭示全层材料';
+                toggleBtn.classList.remove('back-btn');
+                toggleBtn.classList.add('search-btn');
             });
             optionsList.appendChild(div);
         });
@@ -778,8 +781,6 @@
     function init() {
         populateCustomSelect();
         initCustomSelect();
-
-        let isLayerView = false;  // 当前是否显示分层视图
 
         function switchToRecipeView() {
             if (currentSelectedValue) {
