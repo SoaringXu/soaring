@@ -18,7 +18,12 @@
             color: #ece8e0;
             min-height: 100vh;
         }
-
+        ul {
+            padding: 0 4px;
+        }
+        li {
+            list-style-type: none;
+        }
         .container {
             max-width: 1400px;
             margin: 0 auto;
@@ -29,10 +34,8 @@
             padding: 1.2rem;
             border: 1px solid rgba(210, 180, 110, 0.3);
         }
-
         h1 {
             font-size: 1.6rem;
-            letter-spacing: 1px;
             background: linear-gradient(135deg, #f7e5b5, #dbb87c);
             -webkit-background-clip: text;
             background-clip: text;
@@ -58,7 +61,6 @@
             color: #cdc6b5;
             font-size: 0.8rem;
         }
-
         .search-section {
             background: #1e282c;
             border-radius: 1.5rem;
@@ -66,19 +68,16 @@
             margin-bottom: 1.5rem;
             box-shadow: inset 0 0 0 1px rgba(210, 180, 110, 0.2), 0 8px 18px rgba(0,0,0,0.3);
         }
-
         .selector-area {
             display: flex;
             flex-wrap: wrap;
             gap: 0.8rem;
             align-items: flex-end;
         }
-
         .input-group {
             flex: 2;
-            min-width: 160px;
+            min-width: 180px;
         }
-
         .input-group label {
             display: block;
             font-size: 0.7rem;
@@ -193,7 +192,6 @@
             border: 1px solid #2f3e3a;
             overflow: hidden;
         }
-
         .result-header {
             background: #0f191d;
             padding: 0.9rem 1rem;
@@ -204,7 +202,6 @@
             flex-wrap: wrap;
             gap: 0.8rem;
         }
-
         .result-header h2 {
             font-size: 1.3rem;
             font-weight: 600;
@@ -419,7 +416,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 0.8rem;
+            margin-bottom: 0.2rem;
             gap: 0.5rem;
         }
         .material-input-row label {
@@ -483,33 +480,31 @@
         <div class="result-header">
             <h2>📜 <span id="resultItemName" class="recipe-badge">未选取</span><span id="nameTips"></span></h2>
         </div>
-        <div id="recipeDisplay" class="recipe-list" style="padding: 0.8rem;">
+        <div id="recipeDisplay" style="padding: 0.8rem;">
             <div class="empty-message">⚡ 选择物品后自动显示直接配方及完全分解基础材料</div>
         </div>
     </div>
-    <footer>※ 多配方物品使用Tab切换 | 分层材料展示每一级合成所需材料数量</footer>
+    <footer>※ 计算所需材料时，填写您拥有的物品数量（包括成品），系统将自动折算为基础材料并计算净需求。</footer>
+</div>
 
-    <!-- 计算所需材料弹窗 -->
-    <div id="materialDialog" class="dialog-overlay" style="display: none;">
-        <div class="dialog-container">
-            <div class="dialog-header">
-                <h3>📊 计算所需材料</h3>
-                <button class="dialog-close">&times;</button>
-            </div>
-            <div class="dialog-body" id="dialogBody">
-                <!-- 动态生成表单 -->
-            </div>
-            <div class="dialog-footer">
-                <button id="calcSubmitBtn" class="search-btn">计算还需数量</button>
-                <button id="calcCancelBtn" class="back-btn">取消</button>
-            </div>
-            <div id="calcResult" class="calc-result" style="display: none;"></div>
+<!-- 弹窗 -->
+<div id="materialDialog" class="dialog-overlay" style="display: none;">
+    <div class="dialog-container">
+        <div class="dialog-header">
+            <h3>📊 填写已有材料数量</h3>
+            <button class="dialog-close">&times;</button>
         </div>
+        <div class="dialog-body" id="dialogBody"></div>
+        <div class="dialog-footer">
+            <button id="calcResetBtn" class="search-btn">重置</button>
+            <button id="calcCancelBtn" class="back-btn">退出</button>
+        </div>
+        <div id="calcResult" class="calc-result" style="display: none;"></div>
     </div>
 </div>
 
 <script>
-    // ---------- CSV原始数据 ----------
+    // ==================== CSV 数据解析 ====================
     const csvRaw = `,暗夜对剑,冲锋盾,尖刺铠甲,镇魂宝石,神行靴,白银之刃,圣洁坠饰,奥术披风,阔剑,小圆盾,龙纹印,纪念石碑,红宝石杯,治愈之心,潮汐之刃,秘法钥匙,傀儡娃娃,野兽图腾,集合旗,部落酒杯,骨质节杖,秘银斧,青铜匕首,骨锯,石锤,野兽骨,青铜镜,石灰岩
 随机永恒I,1,,1,1,,,,,,,,,,,,,,,,,,,,,,,,
 随机永恒I,,1,1,1,,,,,,,,,,,,,,,,,,,,,,,,
@@ -545,23 +540,17 @@
 骨锯,,,,,,,,,,,,,,,,,,,,,,,,,,4,,2
 石锤,,,,,,,,,,,,,,,,,,,,,,,,,,,2,4`;
 
-    // 全局：当前物品、当前配方索引
-    let currentItem = null;
-    let currentTabRecipeIndex = 0;  // 0-based
-
     function parseCraftingData(csvStr) {
         const lines = csvStr.split(/\r?\n/);
         const headersRaw = lines[0].split(',');
         const headers = headersRaw.map(h => h.trim());
+        const materialNames = [];
+        for (let i = 1; i < headers.length; i++) {
+            if (headers[i] && headers[i] !== "") materialNames.push(headers[i]);
+        }
         const recipesMap = new Map();
         const orderSet = new Set();
         const orderList = [];
-        const materialNames = [];  // 在解析表头时收集
-        for (let i = 1; i < headers.length; i++) {
-            if (headers[i] && headers[i] !== "") {
-                materialNames.push(headers[i]);
-            }
-        }
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -593,50 +582,54 @@
     const { recipesMap, orderList, materialNames } = parseCraftingData(csvRaw);
     function isBaseMaterial(name) { return !recipesMap.has(name); }
 
-    // 获取单个配方的直接材料Map（不合并多个配方）
+    // 排序函数（按原始表头顺序）
+    function sortByOriginalOrder(entries) {
+        const indexMap = new Map();
+        materialNames.forEach((name, idx) => indexMap.set(name, idx));
+        return entries.sort((a, b) => {
+            const idxA = indexMap.get(a[0]) ?? 9999;
+            const idxB = indexMap.get(b[0]) ?? 9999;
+            return idxA - idxB;
+        });
+    }
+
+    // 获取单个配方的直接材料Map
     function getRecipeMaterials(recipe) {
         const map = new Map();
-        for (const mat of recipe.materials) {
-            map.set(mat.name, (map.get(mat.name) || 0) + mat.quantity);
-        }
+        for (const mat of recipe.materials) map.set(mat.name, (map.get(mat.name) || 0) + mat.quantity);
         return map;
     }
 
-    // 递归获取完全分解基础材料合计（按单个配方展开）
+    // 完全分解（基础材料合计）
     function getFullBaseForRecipe(recipe, quantity = 1) {
         const result = new Map();
         for (const mat of recipe.materials) {
             const subResult = decomposeMaterial(mat.name, mat.quantity * quantity);
-            for (const [k,v] of subResult) result.set(k, (result.get(k)||0)+v);
+            for (const [k, v] of subResult) result.set(k, (result.get(k) || 0) + v);
         }
         return result;
     }
     function decomposeMaterial(matName, qty, visited = new Set()) {
         if (visited.has(matName)) return new Map();
         visited.add(matName);
-        if (isBaseMaterial(matName)) {
-            visited.delete(matName);
-            return new Map([[matName, qty]]);
-        }
+        if (isBaseMaterial(matName)) { visited.delete(matName); return new Map([[matName, qty]]); }
         const recipes = recipesMap.get(matName);
         if (!recipes || recipes.length === 0) return new Map([[matName, qty]]);
         const recipe = recipes[0];
         const result = new Map();
         for (const sub of recipe.materials) {
             const subRes = decomposeMaterial(sub.name, sub.quantity * qty, new Set(visited));
-            for (const [k,v] of subRes) result.set(k, (result.get(k)||0)+v);
+            for (const [k, v] of subRes) result.set(k, (result.get(k) || 0) + v);
         }
         visited.delete(matName);
         return result;
     }
 
-    // 分层获取材料（按单个配方，每层独立）
-    function getLayersForRecipe(recipe, itemName) {
+    // 分层获取材料
+    function getLayersForRecipe(recipe) {
         const layers = [];
         let currentLayer = new Map();
-        for (const mat of recipe.materials) {
-            currentLayer.set(mat.name, (currentLayer.get(mat.name)||0) + mat.quantity);
-        }
+        for (const mat of recipe.materials) currentLayer.set(mat.name, (currentLayer.get(mat.name) || 0) + mat.quantity);
         layers.push(currentLayer);
         while (true) {
             let nextLayer = new Map();
@@ -647,14 +640,12 @@
                     const subRecipes = recipesMap.get(matName);
                     if (subRecipes && subRecipes.length) {
                         const subRecipe = subRecipes[0];
-                        for (const sub of subRecipe.materials) {
-                            nextLayer.set(sub.name, (nextLayer.get(sub.name)||0) + sub.quantity * qty);
-                        }
+                        for (const sub of subRecipe.materials) nextLayer.set(sub.name, (nextLayer.get(sub.name) || 0) + sub.quantity * qty);
                     } else {
-                        nextLayer.set(matName, (nextLayer.get(matName)||0) + qty);
+                        nextLayer.set(matName, (nextLayer.get(matName) || 0) + qty);
                     }
                 } else {
-                    nextLayer.set(matName, (nextLayer.get(matName)||0) + qty);
+                    nextLayer.set(matName, (nextLayer.get(matName) || 0) + qty);
                 }
             }
             if (!hasAny) break;
@@ -664,6 +655,7 @@
         return layers;
     }
 
+    // 颜色分类
     function getItemColorClass(itemName) {
         if (itemName.startsWith('随机永恒')) return 'bg-random-eternal';
         const mythList = ['暗夜对剑', '冲锋盾', '尖刺铠甲', '镇魂宝石', '神行靴', '白银之刃', '圣洁坠饰', '奥术披风']
@@ -696,8 +688,140 @@
         }
     }
 
-    // 渲染默认视图（直接配方 + 完全分解基础合计）- 支持多配方Tab
+    // ==================== 净需求计算（新算法） ====================
+    // 计算单个物品完全分解为基础材料
+    function getBaseMaterialsForItem(itemName, quantity = 1) {
+        if (isBaseMaterial(itemName)) {
+            const map = new Map();
+            map.set(itemName, quantity);
+            return map;
+        }
+        const recipes = recipesMap.get(itemName);
+        if (!recipes || recipes.length === 0) {
+            const map = new Map();
+            map.set(itemName, quantity);
+            return map;
+        }
+        const recipe = recipes[0];
+        const result = new Map();
+        for (const sub of recipe.materials) {
+            const subResult = getBaseMaterialsForItem(sub.name, sub.quantity * quantity);
+            for (const [k, v] of subResult) result.set(k, (result.get(k) || 0) + v);
+        }
+        return result;
+    }
+
+    // 获取当前物品当前配方下的所有材料（用于弹窗显示，包含中间产物）
+    function getAllMaterialsForRecipe(recipe, quantity = 1, visited = new Set()) {
+        const result = new Map();
+        const localVisited = new Set(visited);
+        for (const mat of recipe.materials) {
+            const subQty = mat.quantity * quantity;
+            result.set(mat.name, (result.get(mat.name) || 0) + subQty);
+            if (recipesMap.has(mat.name) && !localVisited.has(mat.name)) {
+                localVisited.add(mat.name);
+                const subRecipes = recipesMap.get(mat.name);
+                if (subRecipes && subRecipes.length > 0) {
+                    const subResult = getAllMaterialsForRecipe(subRecipes[0], subQty, localVisited);
+                    for (const [subName, subTotal] of subResult) result.set(subName, (result.get(subName) || 0) + subTotal);
+                }
+                localVisited.delete(mat.name);
+            }
+        }
+        return result;
+    }
+
+    function showMaterialDialog() {
+        if (!currentItem) { alert('请先选择一件物品'); return; }
+        const recipes = recipesMap.get(currentItem);
+        if (!recipes || recipes.length === 0) { alert('当前物品无配方'); return; }
+        const idx = Math.min(currentTabRecipeIndex, recipes.length - 1);
+        const recipe = recipes[idx];
+        const allMaterials = getAllMaterialsForRecipe(recipe);
+        if (!allMaterials || allMaterials.size === 0) { alert('无材料需求'); return; }
+        const sorted = sortByOriginalOrder(Array.from(allMaterials.entries()));
+        let html = '';
+        for (const [name, required] of sorted) {
+            html += `<div class="material-input-row">
+                        <label><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span> (需要 ${required})</label>
+                        <input type="number" min="0" value="0" data-name="${escapeHtml(name)}" data-required="${required}" oninput="calculateRemaining()" class="material-own-input">
+                    </div>`;
+        }
+        document.getElementById('dialogBody').innerHTML = html;
+        document.getElementById('materialDialog').style.display = 'flex';
+        document.getElementById('calcResult').style.display = 'none';
+        calculateRemaining();
+    }
+
+    function calculateRemaining() {
+        // 获取用户填写的拥有物品数量
+        const inputs = document.querySelectorAll('.material-own-input');
+        const ownedMap = new Map();
+        for (const input of inputs) {
+            const name = input.getAttribute('data-name');
+            const own = parseInt(input.value) || 0;
+            if (own > 0) ownedMap.set(name, own);
+        }
+
+        // 获取当前配方的总基础材料需求
+        const recipes = recipesMap.get(currentItem);
+        console.log(currentItem)
+        if (!recipes) return;
+        const idx = Math.min(currentTabRecipeIndex, recipes.length - 1);
+        const recipe = recipes[idx];
+        const totalBaseNeeded = getFullBaseForRecipe(recipe);
+
+        // 计算用户拥有物品的总贡献（基础材料）
+        const totalContribution = new Map();
+        for (const [itemName, qty] of ownedMap) {
+            const contribution = getBaseMaterialsForItem(itemName, qty);
+            for (const [baseName, baseQty] of contribution) {
+                totalContribution.set(baseName, (totalContribution.get(baseName) || 0) + baseQty);
+            }
+        }
+
+        // 计算净需求
+        const netNeeded = new Map();
+        for (const [baseName, needed] of totalBaseNeeded) {
+            const contributed = totalContribution.get(baseName) || 0;
+            const remain = needed - contributed;
+            if (remain > 0) netNeeded.set(baseName, remain);
+        }
+
+        let itemColorCls = getItemColorClass(currentItem);
+        let resultHtml = `<h4>📋<span class="item-name ${itemColorCls}">【${currentItem}】</span>还需基础材料数量：</h4><ul>`;
+        if (netNeeded.size === 0) {
+            resultHtml += '<li>🎉 所有材料已充足！</li>';
+        } else {
+            const sorted = sortByOriginalOrder(Array.from(netNeeded.entries()));
+            for (const [name, qty] of sorted) resultHtml += `<li>${escapeHtml(name)}：<strong>${qty}</strong> 个</li>`;
+        }
+        resultHtml += '</ul>';
+        const resultDiv = document.getElementById('calcResult');
+        resultDiv.innerHTML = resultHtml;
+        resultDiv.style.display = 'block';
+    }
+
+    function closeDialog() { document.getElementById('materialDialog').style.display = 'none'; }
+
+    function resetDialogInputs() {
+        const inputs = document.querySelectorAll('.material-own-input');
+        for (const input of inputs) {
+            input.value = '0';
+        }
+        calculateRemaining();
+    }
+
+    // ==================== UI 渲染 ====================
+    let currentItem = null;
+    let currentTabRecipeIndex = 0;
+    let isLayerView = false;
+
     function renderRecipes(itemName) {
+        currentItem = itemName;
+        currentTabRecipeIndex = 0;
+        isLayerView = false;
+        document.getElementById('toggleViewBtn').innerHTML = '✨揭示全层材料';
         const displayDiv = document.getElementById('recipeDisplay');
         const resultSpan = document.getElementById('resultItemName');
         if (!itemName) {
@@ -705,8 +829,6 @@
             displayDiv.innerHTML = `<div class="empty-message">🔍 请选择一件物品</div>`;
             return;
         }
-        currentItem = itemName;
-        currentTabRecipeIndex = 0;
         const recipes = recipesMap.get(itemName);
         if (!recipes || recipes.length === 0) {
             resultSpan.innerText = itemName;
@@ -725,27 +847,20 @@
             tabsHtml += `</div>`;
         }
         recipes.forEach((recipe, idx) => {
-            // 直接材料
             const materialsMap = getRecipeMaterials(recipe);
             const sortedMats = sortByOriginalOrder(Array.from(materialsMap.entries()));
-            // 完全分解基础材料
             const fullBaseMap = getFullBaseForRecipe(recipe);
             const sortedBase = sortByOriginalOrder(Array.from(fullBaseMap.entries()));
             const activeClass = (idx === 0) ? 'active' : '';
             tabsHtml += `<div class="tab-content ${activeClass}" id="tab-${idx}">`;
             tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>⚒️ 直接次级材料</th><th>🔢 数量</th></tr></thead><tbody>`;
-            for (const [name, qty] of sortedMats) {
-                tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
-            }
+            for (const [name, qty] of sortedMats) tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
             tabsHtml += `</tbody></table></div>`;
             tabsHtml += `<div class="full-decomp-section"><div class="decomp-header">🧬 完全分解 · 基础材料合计</div>`;
-            if (sortedBase.length === 0) {
-                tabsHtml += `<div class="base-note">该配方无需进一步分解</div>`;
-            } else {
+            if (sortedBase.length === 0) tabsHtml += `<div>该配方无需进一步分解</div>`;
+            else {
                 tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>🌿 基础材料</th><th>🔢 总需求</th></tr></thead><tbody>`;
-                for (const [name, qty] of sortedBase) {
-                    tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
-                }
+                for (const [name, qty] of sortedBase) tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
                 tabsHtml += `</tbody></table></div>`;
             }
             tabsHtml += `</div></div>`;
@@ -755,8 +870,11 @@
         bindTabEvents();
     }
 
-    // 渲染分层视图（每层材料汇总）- 支持多配方Tab
     function renderLayers(itemName) {
+        currentItem = itemName;
+        currentTabRecipeIndex = 0;
+        isLayerView = true;
+        document.getElementById('toggleViewBtn').innerHTML = '↺ 返回配方视图';
         const displayDiv = document.getElementById('recipeDisplay');
         const resultSpan = document.getElementById('resultItemName');
         if (!itemName) {
@@ -764,9 +882,6 @@
             displayDiv.innerHTML = `<div class="empty-message">请选择物品后点击按钮</div>`;
             return;
         }
-
-        currentItem = itemName;
-        currentTabRecipeIndex = 0;
         const recipes = recipesMap.get(itemName);
         if (!recipes || recipes.length === 0) {
             resultSpan.innerText = itemName;
@@ -784,7 +899,7 @@
             tabsHtml += `</div>`;
         }
         recipes.forEach((recipe, idx) => {
-            const layers = getLayersForRecipe(recipe, itemName);
+            const layers = getLayersForRecipe(recipe);
             const activeClass = (idx === 0) ? 'active' : '';
             tabsHtml += `<div class="tab-content ${activeClass}" id="layerTab-${idx}">`;
             layers.forEach((layer, lvl) => {
@@ -792,9 +907,7 @@
                 const sorted = sortByOriginalOrder(Array.from(layer.entries()));
                 tabsHtml += `<div class="layer-card"><div class="layer-title">📁 第 ${lvl+1} 层材料</div>`;
                 tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>材料名称</th><th>所需数量</th></tr></thead><tbody>`;
-                for (const [name, qty] of sorted) {
-                    tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
-                }
+                for (const [name, qty] of sorted) tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
                 tabsHtml += `</tbody></table></div></div>`;
             });
             tabsHtml += `</div>`;
@@ -818,163 +931,25 @@
         e.currentTarget.classList.add('active');
         const targetContent = container.querySelector(`#${targetTab}`);
         if (targetContent) targetContent.classList.add('active');
-        // 更新当前配方索引
-        const tabId = targetTab;
-        if (tabId.startsWith('tab-')) {
-            currentTabRecipeIndex = parseInt(tabId.split('-')[1]);
-        } else if (tabId.startsWith('layerTab-')) {
-            currentTabRecipeIndex = parseInt(tabId.split('-')[1]);
-        }
+        if (targetTab.startsWith('tab-')) currentTabRecipeIndex = parseInt(targetTab.split('-')[1]);
+        else if (targetTab.startsWith('layerTab-')) currentTabRecipeIndex = parseInt(targetTab.split('-')[1]);
     }
 
-    // 获取当前配方的基础材料合计（根据当前物品和索引）
-    function getCurrentRecipeBaseMaterials() {
-        if (!currentItem) return null;
-        const recipes = recipesMap.get(currentItem);
-        if (!recipes || recipes.length === 0) return null;
-        const idx = Math.min(currentTabRecipeIndex, recipes.length - 1);
-        const recipe = recipes[idx];
-        return getFullBaseForRecipe(recipe);
-    }
-
-    function sortByOriginalOrder(entries) {
-        const indexMap = new Map();
-        materialNames.forEach((name, idx) => indexMap.set(name, idx));
-        return entries.sort((a, b) => {
-            const idxA = indexMap.get(a[0]) ?? 9999;
-            const idxB = indexMap.get(b[0]) ?? 9999;
-            return idxA - idxB;
-        });
-    }
-
-    function showMaterialDialog() {
-        if (!currentItem) {
-            alert('请先选择一件物品');
-            return;
-        }
-        const allMaterials = getCurrentRecipeAllMaterials();
-        if (!allMaterials || allMaterials.size === 0) {
-            alert('当前物品无任何材料需求');
-            return;
-        }
-        const dialog = document.getElementById('materialDialog');
-        const body = document.getElementById('dialogBody');
-        // 按名称排序
-        const sorted = sortByOriginalOrder(Array.from(allMaterials.entries()));
-        let html = '';
-        for (const [name, required] of sorted) {
-            html += `
-                <div class="material-input-row">
-                    <label><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span> (需要 ${required})</label>
-                    <input type="number" min="0" value="0" data-name="${escapeHtml(name)}" data-required="${required}" class="material-own-input">
-                </div>
-            `;
-        }
-        body.innerHTML = html;
-        dialog.style.display = 'flex';
-        document.getElementById('calcResult').style.display = 'none';
-    }
-
-    // 计算并显示结果
-    function calculateRemaining() {
-        const inputs = document.querySelectorAll('.material-own-input');
-        let resultHtml = '<h4>📋 还需材料数量：</h4><ul>';
-        let hasRemaining = false;
-        for (const input of inputs) {
-            const name = input.getAttribute('data-name');
-            const required = parseInt(input.getAttribute('data-required'));
-            const own = parseInt(input.value) || 0;
-            const remain = required - own;
-            if (remain > 0) {
-                hasRemaining = true;
-                resultHtml += `<li>${escapeHtml(name)}：<strong>${remain}</strong> 个 (需要 ${required}，已有 ${own})</li>`;
-            } else if (remain < 0) {
-                resultHtml += `<li>${escapeHtml(name)}：<span style="color:#6c7a6b;">富余 ${-remain} 个</span></li>`;
-            } else {
-                resultHtml += `<li>${escapeHtml(name)}：<span style="color:#6c7a6b;">刚好足够</span></li>`;
-            }
-        }
-        if (!hasRemaining) {
-            resultHtml += '<li>🎉 所有材料已充足或富余！</li>';
-        }
-        resultHtml += '</ul>';
-        const resultDiv = document.getElementById('calcResult');
-        resultDiv.innerHTML = resultHtml;
-        resultDiv.style.display = 'block';
-    }
-
-    // 关闭弹窗
-    function closeDialog() {
-        document.getElementById('materialDialog').style.display = 'none';
-    }
-
-    // 递归获取某个配方下所有材料的总需求（包括所有层级，去重累加）
-    function getAllMaterialsForRecipe(recipe, quantity = 1, visited = new Set()) {
-        const result = new Map();
-        // 为防止循环依赖，记录当前路径上的材料
-        const localVisited = new Set(visited);
-        
-        for (const mat of recipe.materials) {
-            const subQty = mat.quantity * quantity;
-            // 先累加当前材料自身
-            result.set(mat.name, (result.get(mat.name) || 0) + subQty);
-            
-            // 如果该材料有配方且未在当前路径中（避免循环），递归展开其配方
-            if (recipesMap.has(mat.name) && !localVisited.has(mat.name)) {
-                localVisited.add(mat.name);
-                const subRecipes = recipesMap.get(mat.name);
-                if (subRecipes && subRecipes.length > 0) {
-                    // 注意：中间材料可能有多个配方，这里取第一个（与原逻辑一致）
-                    const subRecipe = subRecipes[0];
-                    const subResult = getAllMaterialsForRecipe(subRecipe, subQty, localVisited);
-                    for (const [subName, subTotal] of subResult) {
-                        result.set(subName, (result.get(subName) || 0) + subTotal);
-                    }
-                }
-                localVisited.delete(mat.name);
-            }
-        }
-        return result;
-    }
-
-    // 获取当前物品当前配方下的所有材料总需求（便捷函数）
-    function getCurrentRecipeAllMaterials() {
-        if (!currentItem) return null;
-        const recipes = recipesMap.get(currentItem);
-        if (!recipes || recipes.length === 0) return null;
-        const idx = Math.min(currentTabRecipeIndex, recipes.length - 1);
-        const recipe = recipes[idx];
-        return getAllMaterialsForRecipe(recipe, 1);
-    }
-
-    function escapeHtml(str) {
-        return str.replace(/[&<>]/g, function(m) {
-            if (m === '&') return '&amp;';
-            if (m === '<') return '&lt;';
-            if (m === '>') return '&gt;';
-            return m;
-        });
-    }
-
-    // 自定义下拉框逻辑
+    // 自定义下拉框
     let currentSelectedValue = "";
-    let isLayerView = false;  // 当前是否显示分层视图
     const toggleBtn = document.getElementById('toggleViewBtn');
-
     function populateCustomSelect() {
         const optionsList = document.getElementById('optionsList');
         optionsList.innerHTML = '';
         orderList.forEach(name => {
             const div = document.createElement('div');
-            div.className = 'option-item';
-            div.classList.add('option-item', getItemColorClass(name));
+            div.className = `option-item ${getItemColorClass(name)}`;
             div.textContent = name;
             div.setAttribute('data-value', name);
             div.addEventListener('click', (e) => {
                 e.stopPropagation();
                 selectCustomOption(name);
                 closeDropdown();
-                // 选择物品后自动显示默认配方视图
                 renderRecipes(name);
                 isLayerView = false;
                 toggleBtn.innerHTML = '✨揭示全层材料';
@@ -1012,11 +987,12 @@
             const isOpen = document.getElementById('customSelectOptions').style.display === 'block';
             isOpen ? closeDropdown() : openDropdown();
         });
-        document.addEventListener('click', function(e) {
-            if (!wrapper.contains(e.target)) closeDropdown();
-        });
+        document.addEventListener('click', (e) => { if (!wrapper.contains(e.target)) closeDropdown(); });
     }
 
+    function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+    // 初始化
     function init() {
         populateCustomSelect();
         initCustomSelect();
@@ -1041,6 +1017,8 @@
             }
         }
 
+        const toggleBtn = document.getElementById('toggleViewBtn');
+        const calcBtn = document.getElementById('calcMaterialBtn');
         toggleBtn.addEventListener('click', () => {
             if (!currentSelectedValue) {
                 document.getElementById('resultItemName').innerText = '未选取';
@@ -1053,20 +1031,12 @@
                 switchToLayerView();
             }
         });
-
-        renderRecipes(null);
-
-        const calcBtn = document.getElementById('calcMaterialBtn');
         calcBtn.addEventListener('click', showMaterialDialog);
-
-        // 关闭弹窗事件
         document.querySelector('.dialog-close').addEventListener('click', closeDialog);
         document.getElementById('calcCancelBtn').addEventListener('click', closeDialog);
-        document.getElementById('calcSubmitBtn').addEventListener('click', calculateRemaining);
-        // 点击遮罩关闭
-        document.getElementById('materialDialog').addEventListener('click', (e) => {
-            if (e.target === document.getElementById('materialDialog')) closeDialog();
-        });
+        document.getElementById('calcResetBtn').addEventListener('click', resetDialogInputs);
+        document.getElementById('materialDialog').addEventListener('click', (e) => { if (e.target === document.getElementById('materialDialog')) closeDialog(); });
+        renderRecipes(null);
     }
     window.addEventListener('DOMContentLoaded', init);
 </script>
