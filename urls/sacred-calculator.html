@@ -359,6 +359,82 @@
         #nameTips {
             font-size: 0.8rem;
         }
+        /* 弹窗样式 */
+        .dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            z-index: 2000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .dialog-container {
+            background: #1e282c;
+            border-radius: 1.5rem;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid #dbb87c;
+        }
+        .dialog-header {
+            padding: 1rem;
+            border-bottom: 1px solid #2f423c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .dialog-header h3 {
+            color: #efdbac;
+        }
+        .dialog-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #cdba88;
+        }
+        .dialog-body {
+            padding: 1rem;
+        }
+        .dialog-footer {
+            padding: 1rem;
+            display: flex;
+            gap: 0.8rem;
+            justify-content: flex-end;
+            border-top: 1px solid #2f423c;
+        }
+        .calc-result {
+            padding: 0.8rem;
+            background: #0f1b1e;
+            margin: 0 1rem 1rem 1rem;
+            border-radius: 1rem;
+            color: #ffd98c;
+        }
+        .material-input-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.8rem;
+            gap: 0.5rem;
+        }
+        .material-input-row label {
+            flex: 1;
+            color: #e5ddcd;
+        }
+        .material-input-row input {
+            width: 100px;
+            padding: 0.4rem;
+            background: #0f181c;
+            border: 1px solid #4a5b4f;
+            border-radius: 1rem;
+            color: #f2e8d5;
+            text-align: center;
+        }
         @media (max-width: 560px) {
             body { padding: 0.6rem; }
             .material-table th, .material-table td { font-size: 0.75rem; padding: 0.5rem 0.3rem; }
@@ -399,6 +475,7 @@
                 </div>
             </div>
             <button id="toggleViewBtn" class="search-btn">✨揭示全层材料</button>
+            <button id="calcMaterialBtn" class="back-btn">📊计算所需材料</button>
         </div>
     </div>
 
@@ -411,6 +488,24 @@
         </div>
     </div>
     <footer>※ 多配方物品使用Tab切换 | 分层材料展示每一级合成所需材料数量</footer>
+
+    <!-- 计算所需材料弹窗 -->
+    <div id="materialDialog" class="dialog-overlay" style="display: none;">
+        <div class="dialog-container">
+            <div class="dialog-header">
+                <h3>📊 计算所需材料</h3>
+                <button class="dialog-close">&times;</button>
+            </div>
+            <div class="dialog-body" id="dialogBody">
+                <!-- 动态生成表单 -->
+            </div>
+            <div class="dialog-footer">
+                <button id="calcSubmitBtn" class="search-btn">计算还需数量</button>
+                <button id="calcCancelBtn" class="back-btn">取消</button>
+            </div>
+            <div id="calcResult" class="calc-result" style="display: none;"></div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -450,6 +545,10 @@
 骨锯,,,,,,,,,,,,,,,,,,,,,,,,,,4,,2
 石锤,,,,,,,,,,,,,,,,,,,,,,,,,,,2,4`;
 
+    // 全局：当前物品、当前配方索引
+    let currentItem = null;
+    let currentTabRecipeIndex = 0;  // 0-based
+
     function parseCraftingData(csvStr) {
         const lines = csvStr.split(/\r?\n/);
         const headersRaw = lines[0].split(',');
@@ -457,6 +556,12 @@
         const recipesMap = new Map();
         const orderSet = new Set();
         const orderList = [];
+        const materialNames = [];  // 在解析表头时收集
+        for (let i = 1; i < headers.length; i++) {
+            if (headers[i] && headers[i] !== "") {
+                materialNames.push(headers[i]);
+            }
+        }
         for (let i = 1; i < lines.length; i++) {
             const line = lines[i].trim();
             if (!line) continue;
@@ -482,10 +587,10 @@
             if (!recipesMap.has(itemName)) recipesMap.set(itemName, []);
             recipesMap.get(itemName).push({ materials });
         }
-        return { recipesMap, orderList };
+        return { recipesMap, orderList, materialNames };
     }
 
-    const { recipesMap, orderList } = parseCraftingData(csvRaw);
+    const { recipesMap, orderList, materialNames } = parseCraftingData(csvRaw);
     function isBaseMaterial(name) { return !recipesMap.has(name); }
 
     // 获取单个配方的直接材料Map（不合并多个配方）
@@ -600,6 +705,8 @@
             displayDiv.innerHTML = `<div class="empty-message">🔍 请选择一件物品</div>`;
             return;
         }
+        currentItem = itemName;
+        currentTabRecipeIndex = 0;
         const recipes = recipesMap.get(itemName);
         if (!recipes || recipes.length === 0) {
             resultSpan.innerText = itemName;
@@ -618,10 +725,12 @@
             tabsHtml += `</div>`;
         }
         recipes.forEach((recipe, idx) => {
+            // 直接材料
             const materialsMap = getRecipeMaterials(recipe);
-            const sortedMats = Array.from(materialsMap.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+            const sortedMats = sortByOriginalOrder(Array.from(materialsMap.entries()));
+            // 完全分解基础材料
             const fullBaseMap = getFullBaseForRecipe(recipe);
-            const sortedBase = Array.from(fullBaseMap.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+            const sortedBase = sortByOriginalOrder(Array.from(fullBaseMap.entries()));
             const activeClass = (idx === 0) ? 'active' : '';
             tabsHtml += `<div class="tab-content ${activeClass}" id="tab-${idx}">`;
             tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>⚒️ 直接次级材料</th><th>🔢 数量</th></tr></thead><tbody>`;
@@ -655,6 +764,9 @@
             displayDiv.innerHTML = `<div class="empty-message">请选择物品后点击按钮</div>`;
             return;
         }
+
+        currentItem = itemName;
+        currentTabRecipeIndex = 0;
         const recipes = recipesMap.get(itemName);
         if (!recipes || recipes.length === 0) {
             resultSpan.innerText = itemName;
@@ -677,7 +789,7 @@
             tabsHtml += `<div class="tab-content ${activeClass}" id="layerTab-${idx}">`;
             layers.forEach((layer, lvl) => {
                 if (layer.size === 0) return;
-                const sorted = Array.from(layer.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+                const sorted = sortByOriginalOrder(Array.from(layer.entries()));
                 tabsHtml += `<div class="layer-card"><div class="layer-title">📁 第 ${lvl+1} 层材料</div>`;
                 tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>材料名称</th><th>所需数量</th></tr></thead><tbody>`;
                 for (const [name, qty] of sorted) {
@@ -706,6 +818,133 @@
         e.currentTarget.classList.add('active');
         const targetContent = container.querySelector(`#${targetTab}`);
         if (targetContent) targetContent.classList.add('active');
+        // 更新当前配方索引
+        const tabId = targetTab;
+        if (tabId.startsWith('tab-')) {
+            currentTabRecipeIndex = parseInt(tabId.split('-')[1]);
+        } else if (tabId.startsWith('layerTab-')) {
+            currentTabRecipeIndex = parseInt(tabId.split('-')[1]);
+        }
+    }
+
+    // 获取当前配方的基础材料合计（根据当前物品和索引）
+    function getCurrentRecipeBaseMaterials() {
+        if (!currentItem) return null;
+        const recipes = recipesMap.get(currentItem);
+        if (!recipes || recipes.length === 0) return null;
+        const idx = Math.min(currentTabRecipeIndex, recipes.length - 1);
+        const recipe = recipes[idx];
+        return getFullBaseForRecipe(recipe);
+    }
+
+    function sortByOriginalOrder(entries) {
+        const indexMap = new Map();
+        materialNames.forEach((name, idx) => indexMap.set(name, idx));
+        return entries.sort((a, b) => {
+            const idxA = indexMap.get(a[0]) ?? 9999;
+            const idxB = indexMap.get(b[0]) ?? 9999;
+            return idxA - idxB;
+        });
+    }
+
+    function showMaterialDialog() {
+        if (!currentItem) {
+            alert('请先选择一件物品');
+            return;
+        }
+        const allMaterials = getCurrentRecipeAllMaterials();
+        if (!allMaterials || allMaterials.size === 0) {
+            alert('当前物品无任何材料需求');
+            return;
+        }
+        const dialog = document.getElementById('materialDialog');
+        const body = document.getElementById('dialogBody');
+        // 按名称排序
+        const sorted = sortByOriginalOrder(Array.from(allMaterials.entries()));
+        let html = '';
+        for (const [name, required] of sorted) {
+            html += `
+                <div class="material-input-row">
+                    <label><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span> (需要 ${required})</label>
+                    <input type="number" min="0" value="0" data-name="${escapeHtml(name)}" data-required="${required}" class="material-own-input">
+                </div>
+            `;
+        }
+        body.innerHTML = html;
+        dialog.style.display = 'flex';
+        document.getElementById('calcResult').style.display = 'none';
+    }
+
+    // 计算并显示结果
+    function calculateRemaining() {
+        const inputs = document.querySelectorAll('.material-own-input');
+        let resultHtml = '<h4>📋 还需材料数量：</h4><ul>';
+        let hasRemaining = false;
+        for (const input of inputs) {
+            const name = input.getAttribute('data-name');
+            const required = parseInt(input.getAttribute('data-required'));
+            const own = parseInt(input.value) || 0;
+            const remain = required - own;
+            if (remain > 0) {
+                hasRemaining = true;
+                resultHtml += `<li>${escapeHtml(name)}：<strong>${remain}</strong> 个 (需要 ${required}，已有 ${own})</li>`;
+            } else if (remain < 0) {
+                resultHtml += `<li>${escapeHtml(name)}：<span style="color:#6c7a6b;">富余 ${-remain} 个</span></li>`;
+            } else {
+                resultHtml += `<li>${escapeHtml(name)}：<span style="color:#6c7a6b;">刚好足够</span></li>`;
+            }
+        }
+        if (!hasRemaining) {
+            resultHtml += '<li>🎉 所有材料已充足或富余！</li>';
+        }
+        resultHtml += '</ul>';
+        const resultDiv = document.getElementById('calcResult');
+        resultDiv.innerHTML = resultHtml;
+        resultDiv.style.display = 'block';
+    }
+
+    // 关闭弹窗
+    function closeDialog() {
+        document.getElementById('materialDialog').style.display = 'none';
+    }
+
+    // 递归获取某个配方下所有材料的总需求（包括所有层级，去重累加）
+    function getAllMaterialsForRecipe(recipe, quantity = 1, visited = new Set()) {
+        const result = new Map();
+        // 为防止循环依赖，记录当前路径上的材料
+        const localVisited = new Set(visited);
+        
+        for (const mat of recipe.materials) {
+            const subQty = mat.quantity * quantity;
+            // 先累加当前材料自身
+            result.set(mat.name, (result.get(mat.name) || 0) + subQty);
+            
+            // 如果该材料有配方且未在当前路径中（避免循环），递归展开其配方
+            if (recipesMap.has(mat.name) && !localVisited.has(mat.name)) {
+                localVisited.add(mat.name);
+                const subRecipes = recipesMap.get(mat.name);
+                if (subRecipes && subRecipes.length > 0) {
+                    // 注意：中间材料可能有多个配方，这里取第一个（与原逻辑一致）
+                    const subRecipe = subRecipes[0];
+                    const subResult = getAllMaterialsForRecipe(subRecipe, subQty, localVisited);
+                    for (const [subName, subTotal] of subResult) {
+                        result.set(subName, (result.get(subName) || 0) + subTotal);
+                    }
+                }
+                localVisited.delete(mat.name);
+            }
+        }
+        return result;
+    }
+
+    // 获取当前物品当前配方下的所有材料总需求（便捷函数）
+    function getCurrentRecipeAllMaterials() {
+        if (!currentItem) return null;
+        const recipes = recipesMap.get(currentItem);
+        if (!recipes || recipes.length === 0) return null;
+        const idx = Math.min(currentTabRecipeIndex, recipes.length - 1);
+        const recipe = recipes[idx];
+        return getAllMaterialsForRecipe(recipe, 1);
     }
 
     function escapeHtml(str) {
@@ -816,6 +1055,18 @@
         });
 
         renderRecipes(null);
+
+        const calcBtn = document.getElementById('calcMaterialBtn');
+        calcBtn.addEventListener('click', showMaterialDialog);
+
+        // 关闭弹窗事件
+        document.querySelector('.dialog-close').addEventListener('click', closeDialog);
+        document.getElementById('calcCancelBtn').addEventListener('click', closeDialog);
+        document.getElementById('calcSubmitBtn').addEventListener('click', calculateRemaining);
+        // 点击遮罩关闭
+        document.getElementById('materialDialog').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('materialDialog')) closeDialog();
+        });
     }
     window.addEventListener('DOMContentLoaded', init);
 </script>
