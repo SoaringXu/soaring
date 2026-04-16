@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>圣物工坊 · 全层级溯源 | 多配方Tab版</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: linear-gradient(145deg, #1a2a2f 0%, #0f1a1f 100%);
+            font-family: 'Segoe UI', 'Roboto', 'Noto Sans', system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+            padding: 1rem;
+            color: #ece8e0;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(30, 35, 38, 0.85);
+            backdrop-filter: blur(2px);
+            border-radius: 2rem;
+            box-shadow: 0 20px 35px -12px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            padding: 1.2rem;
+            border: 1px solid rgba(210, 180, 110, 0.3);
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #f7e5b5, #dbb87c);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 0.2rem;
+        }
+
+        h1 small {
+            font-size: 0.7rem;
+            background: none;
+            color: #b9b09b;
+            font-weight: normal;
+        }
+
+        .sub {
+            border-left: 3px solid #e4b363;
+            padding-left: 0.8rem;
+            margin: 0.3rem 0 1.2rem 0;
+            color: #cdc6b5;
+            font-size: 0.8rem;
+        }
+
+        .search-section {
+            background: #1e282c;
+            border-radius: 1.5rem;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: inset 0 0 0 1px rgba(210, 180, 110, 0.2), 0 8px 18px rgba(0,0,0,0.3);
+        }
+
+        .selector-area {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            flex: 2;
+            min-width: 160px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            font-weight: 600;
+            color: #cfba8a;
+            margin-bottom: 0.3rem;
+        }
+
+        .custom-select-wrapper {
+            position: relative;
+            width: 100%;
+            user-select: none;
+        }
+
+        .custom-select-trigger {
+            width: 100%;
+            padding: 0.75rem 0.9rem;
+            background: #0f181c;
+            border: 1px solid #4a5b4f;
+            border-radius: 2rem;
+            color: #f2e8d5;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .custom-select-trigger .arrow {
+            font-size: 0.7rem;
+            transition: transform 0.2s;
+            color: #dbb87c;
+        }
+
+        .custom-select-trigger.open .arrow {
+            transform: rotate(180deg);
+        }
+
+        .custom-select-options {
+            position: absolute;
+            top: calc(100% + 5px);
+            left: 0;
+            width: 100%;
+            background: #1e282c;
+            border: 1px solid #4a5b4f;
+            border-radius: 1.2rem;
+            max-height: 860px;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+        }
+
+        .options-list {
+            padding: 0.3rem 0;
+        }
+
+        .option-item {
+            padding: 0.6rem 1rem;
+            color: #ece8e0;
+            font-size: 0.9rem;
+            cursor: pointer;
+            border-bottom: 1px solid #2f423c;
+            width: 100%;
+        }
+
+        .option-item:last-child {
+            border-bottom: none;
+        }
+
+        .option-item:hover, .option-item:active {
+            background: #d4f5e7;
+            color: #1e2b22;
+        }
+
+        .option-item.selected {
+            background: #c29a4b;
+            color: #1e2b22;
+            font-weight: bold;
+        }
+
+        .search-btn, .back-btn {
+            background: #c29a4b;
+            border: none;
+            padding: 0.75rem 1.2rem;
+            border-radius: 2rem;
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: #1e2b22;
+            cursor: pointer;
+            font-family: inherit;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .back-btn {
+            background: #3a5a4f;
+            color: #f2e8d5;
+        }
+
+        .search-btn:active, .back-btn:active {
+            transform: scale(0.96);
+        }
+
+        .result-card {
+            background: #121c1f;
+            border-radius: 1.5rem;
+            border: 1px solid #2f3e3a;
+            overflow: hidden;
+        }
+
+        .result-header {
+            background: #0f191d;
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid #2f423c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.8rem;
+        }
+
+        .result-header h2 {
+            font-size: 1.3rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #f3deba;
+            flex-wrap: wrap;
+        }
+
+        .recipe-badge {
+            font-size: 0.8rem;
+            background: #2f443b;
+            padding: 0.2rem 0.6rem;
+            border-radius: 30px;
+            color: #f5e2bc;
+        }
+
+        /* Tab 样式 */
+        .tabs-container {
+            padding: 0.8rem 0.8rem 0 0.8rem;
+        }
+        .tab-headers {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.3rem;
+            border-bottom: 1px solid #2f423c;
+            margin-bottom: 1rem;
+        }
+        .tab-btn {
+            background: #1e2a2c;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 1.5rem 1.5rem 0 0;
+            color: #cdc6b5;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: 0.1s;
+        }
+        .tab-btn.active {
+            background: #c29a4b;
+            color: #1e2b22;
+            font-weight: bold;
+        }
+        .tab-content {
+            display: none;
+            padding: 0.5rem 0;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        .material-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+        .material-table th, .material-table td {
+            text-align: left;
+            padding: 0.6rem 0.4rem;
+            border-bottom: 1px solid #2e3f3a;
+        }
+        .material-table th {
+            color: #cdba88;
+            width: 45%;
+        }
+        .qty-num {
+            font-family: monospace;
+            font-weight: bold;
+            background: #0f1a1c;
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            color: #ffd98c;
+        }
+        .full-decomp-section {
+            margin: 0.6rem;
+            background: #0f1b1e;
+            border-radius: 1rem;
+            padding: 0.6rem;
+            border-left: 3px solid #86a69d;
+        }
+        .decomp-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: #bdccb5;
+            margin-bottom: 0.4rem;
+        }
+        .layer-card {
+            background: #0f1b1e;
+            border-radius: 1rem;
+            padding: 0.6rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid #dbb87c;
+        }
+        .layer-title {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #efdbac;
+            margin-bottom: 0.5rem;
+        }
+        .empty-message {
+            padding: 2rem;
+            text-align: center;
+            color: #b4aa92;
+        }
+        footer {
+            margin-top: 1.5rem;
+            font-size: 0.65rem;
+            text-align: center;
+            color: #6c7a6b;
+            border-top: 1px solid #2e3e36;
+            padding-top: 1rem;
+        }
+        .table-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        /* 物品颜色分类 */
+        .bg-random-eternal {
+            background-color: #59f5f1;
+            color: #3d474b;
+        }
+        .bg-random-myth {
+            background-color: #df4d33;
+            color: #e4f0f4;
+        }
+        .bg-equipment {
+            background-color: #f9e128;
+            color: #1a2a2f;
+        }
+        .bg-submaterial {
+            background-color: #ac5dec;
+            color: #e4f0f4;
+        }
+        .bg-normal {
+            background-color: #1b87e0;
+            color: #e4f0f4;
+        }
+        .bg-base {
+            background-color: #e8e8e8;
+            color: #2c3e2f;
+        }
+
+        /* 表格单元格内的名称样式 */
+        .material-table td:first-child span.item-name {
+            display: inline-block;
+            padding: 0.1rem 0.4rem;
+            border-radius: 0.3rem;
+        }
+        #nameTips {
+            font-size: 0.8rem;
+        }
+        @media (max-width: 560px) {
+            body { padding: 0.6rem; }
+            .material-table th, .material-table td { font-size: 0.75rem; padding: 0.5rem 0.3rem; }
+            .tab-btn { font-size: 0.7rem; padding: 0.4rem 0.7rem; }
+            .layer-title { font-size: 0.8rem; }
+            .custom-select-options {
+                max-height: 560px;
+            }
+            .options-list {
+                text-align: center;
+            }
+            .option-item {
+                padding: 0.3rem 1rem;
+            }
+            #selectedItemText {
+                margin: 0 auto;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🧭 圣物工坊 · 全层级溯源 </h1>
+    <div class="sub">下拉选择物品自动显示直接配方+基础材料总数 | 点击「揭示全层材料」显示每层材料汇总</div>
+
+    <div class="search-section">
+        <div class="selector-area">
+            <div class="input-group">
+                <label>📦 选择兑换物品</label>
+                <div class="custom-select-wrapper" id="customSelectWrapper">
+                    <div class="custom-select-trigger" id="customSelectTrigger">
+                        <span id="selectedItemText">- 请选择物品 -</span>
+                        <span class="arrow">▼</span>
+                    </div>
+                    <div class="custom-select-options" id="customSelectOptions" style="display: none;">
+                        <div class="options-list" id="optionsList"></div>
+                    </div>
+                </div>
+            </div>
+            <button id="toggleViewBtn" class="search-btn">✨揭示全层材料</button>
+        </div>
+    </div>
+
+    <div class="result-card">
+        <div class="result-header">
+            <h2>📜 <span id="resultItemName" class="recipe-badge">未选取</span><span id="nameTips"></span></h2>
+        </div>
+        <div id="recipeDisplay" class="recipe-list" style="padding: 0.8rem;">
+            <div class="empty-message">⚡ 选择物品后自动显示直接配方及完全分解基础材料</div>
+        </div>
+    </div>
+    <footer>※ 多配方物品使用Tab切换 | 分层材料展示每一级合成所需材料数量</footer>
+</div>
+
+<script>
+    // ---------- CSV原始数据 ----------
+    const csvRaw = `,暗夜对剑,冲锋盾,尖刺铠甲,镇魂宝石,神行靴,白银之刃,圣洁坠饰,奥术披风,阔剑,小圆盾,龙纹印,纪念石碑,红宝石杯,治愈之心,潮汐之刃,秘法钥匙,傀儡娃娃,野兽图腾,集合旗,部落酒杯,骨质节杖,秘银斧,青铜匕首,骨锯,石锤,野兽骨,青铜镜,石灰岩
+随机永恒I,1,,1,1,,,,,,,,,,,,,,,,,,,,,,,,
+随机永恒I,,1,1,1,,,,,,,,,,,,,,,,,,,,,,,,
+随机永恒I,1,1,,1,,,,,,,,,,,,,,,,,,,,,,,,
+随机永恒I,1,1,1,,,,,,,,,,,,,,,,,,,,,,,,,
+随机永恒II,,,,,1,,1,1,,,,,,,,,,,,,,,,,,,,
+随机永恒II,,,,,,1,1,1,,,,,,,,,,,,,,,,,,,,
+随机永恒II,,,,,1,1,,1,,,,,,,,,,,,,,,,,,,,
+随机永恒II,,,,,1,1,1,,,,,,,,,,,,,,,,,,,,,
+随机神话I,,,,,,,,,1,,1,1,,,,,,,,,,,,,,,,
+随机神话I,,,,,,,,,,1,1,1,,,,,,,,,,,,,,,,
+随机神话I,,,,,,,,,1,1,,1,,,,,,,,,,,,,,,,
+随机神话I,,,,,,,,,1,1,1,,,,,,,,,,,,,,,,,
+随机神话II,,,,,,,,,,,,,1,,1,1,,,,,,,,,,,,
+随机神话II,,,,,,,,,,,,,,1,1,1,,,,,,,,,,,,
+随机神话II,,,,,,,,,,,,,1,1,,1,,,,,,,,,,,,
+随机神话II,,,,,,,,,,,,,1,1,1,,,,,,,,,,,,,
+阔剑,,,,,,,,,,,,,,,,,1,1,,1,,,,,,,,
+小圆盾,,,,,,,,,,,,,,,,,1,,1,,,1,,,,,,
+龙纹印,,,,,,,,,,,,,,,,,1,,,1,,1,,,,,,
+纪念石碑,,,,,,,,,,,,,,,,,,1,1,1,,,,,,,,
+红宝石杯,,,,,,,,,,,,,,,,,,1,,,1,1,,,,,,
+治愈之心,,,,,,,,,,,,,,,,,,,1,1,1,,,,,,,
+潮汐之刃,,,,,,,,,,,,,,,,,,,1,,1,1,,,,,,
+秘法钥匙,,,,,,,,,,,,,,,,,1,1,,,1,,,,,,,
+傀儡娃娃,,,,,,,,,,,,,,,,,,,,,,,2,1,,,,
+野兽图腾,,,,,,,,,,,,,,,,,,,,,,,1,2,,,,
+集合旗,,,,,,,,,,,,,,,,,,,,,,,,2,1,,,
+部落酒杯,,,,,,,,,,,,,,,,,,,,,,,,1,2,,,
+骨质节杖,,,,,,,,,,,,,,,,,,,,,,,2,,1,,,
+秘银斧,,,,,,,,,,,,,,,,,,,,,,,1,,2,,,
+青铜匕首,,,,,,,,,,,,,,,,,,,,,,,,,,2,4,
+骨锯,,,,,,,,,,,,,,,,,,,,,,,,,,4,,2
+石锤,,,,,,,,,,,,,,,,,,,,,,,,,,,2,4`;
+
+    function parseCraftingData(csvStr) {
+        const lines = csvStr.split(/\r?\n/);
+        const headersRaw = lines[0].split(',');
+        const headers = headersRaw.map(h => h.trim());
+        const recipesMap = new Map();
+        const orderSet = new Set();
+        const orderList = [];
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i].trim();
+            if (!line) continue;
+            const cells = line.split(',');
+            let itemName = cells[0] ? cells[0].trim() : "";
+            if (!itemName) continue;
+            if (!orderSet.has(itemName)) { orderSet.add(itemName); orderList.push(itemName); }
+            const fullRow = [];
+            for (let j = 0; j < headers.length; j++) {
+                if (j < cells.length) fullRow.push(cells[j] ? cells[j].trim() : "");
+                else fullRow.push("");
+            }
+            const materials = [];
+            for (let col = 1; col < fullRow.length; col++) {
+                const rawVal = fullRow[col];
+                if (rawVal === "") continue;
+                const qty = parseInt(rawVal, 10);
+                if (isNaN(qty) || qty === 0) continue;
+                const matName = headers[col];
+                if (matName) materials.push({ name: matName, quantity: qty });
+            }
+            if (materials.length === 0) continue;
+            if (!recipesMap.has(itemName)) recipesMap.set(itemName, []);
+            recipesMap.get(itemName).push({ materials });
+        }
+        return { recipesMap, orderList };
+    }
+
+    const { recipesMap, orderList } = parseCraftingData(csvRaw);
+    function isBaseMaterial(name) { return !recipesMap.has(name); }
+
+    // 获取单个配方的直接材料Map（不合并多个配方）
+    function getRecipeMaterials(recipe) {
+        const map = new Map();
+        for (const mat of recipe.materials) {
+            map.set(mat.name, (map.get(mat.name) || 0) + mat.quantity);
+        }
+        return map;
+    }
+
+    // 递归获取完全分解基础材料合计（按单个配方展开）
+    function getFullBaseForRecipe(recipe, quantity = 1) {
+        const result = new Map();
+        for (const mat of recipe.materials) {
+            const subResult = decomposeMaterial(mat.name, mat.quantity * quantity);
+            for (const [k,v] of subResult) result.set(k, (result.get(k)||0)+v);
+        }
+        return result;
+    }
+    function decomposeMaterial(matName, qty, visited = new Set()) {
+        if (visited.has(matName)) return new Map();
+        visited.add(matName);
+        if (isBaseMaterial(matName)) {
+            visited.delete(matName);
+            return new Map([[matName, qty]]);
+        }
+        const recipes = recipesMap.get(matName);
+        if (!recipes || recipes.length === 0) return new Map([[matName, qty]]);
+        const recipe = recipes[0];
+        const result = new Map();
+        for (const sub of recipe.materials) {
+            const subRes = decomposeMaterial(sub.name, sub.quantity * qty, new Set(visited));
+            for (const [k,v] of subRes) result.set(k, (result.get(k)||0)+v);
+        }
+        visited.delete(matName);
+        return result;
+    }
+
+    // 分层获取材料（按单个配方，每层独立）
+    function getLayersForRecipe(recipe, itemName) {
+        const layers = [];
+        let currentLayer = new Map();
+        for (const mat of recipe.materials) {
+            currentLayer.set(mat.name, (currentLayer.get(mat.name)||0) + mat.quantity);
+        }
+        layers.push(currentLayer);
+        while (true) {
+            let nextLayer = new Map();
+            let hasAny = false;
+            for (let [matName, qty] of currentLayer) {
+                if (recipesMap.has(matName)) {
+                    hasAny = true;
+                    const subRecipes = recipesMap.get(matName);
+                    if (subRecipes && subRecipes.length) {
+                        const subRecipe = subRecipes[0];
+                        for (const sub of subRecipe.materials) {
+                            nextLayer.set(sub.name, (nextLayer.get(sub.name)||0) + sub.quantity * qty);
+                        }
+                    } else {
+                        nextLayer.set(matName, (nextLayer.get(matName)||0) + qty);
+                    }
+                } else {
+                    nextLayer.set(matName, (nextLayer.get(matName)||0) + qty);
+                }
+            }
+            if (!hasAny) break;
+            layers.push(nextLayer);
+            currentLayer = nextLayer;
+        }
+        return layers;
+    }
+
+    function getItemColorClass(itemName) {
+        if (itemName.startsWith('随机永恒')) return 'bg-random-eternal';
+        const mythList = ['暗夜对剑', '冲锋盾', '尖刺铠甲', '镇魂宝石', '神行靴', '白银之刃', '圣洁坠饰', '奥术披风']
+        if (itemName.startsWith('随机神话') || mythList.includes(itemName)) return 'bg-random-myth';
+        const equipmentList = ['阔剑', '小圆盾', '龙纹印', '纪念石碑', '红宝石杯', '治愈之心', '潮汐之刃', '秘法钥匙'];
+        if (equipmentList.includes(itemName)) return 'bg-equipment';
+        const subMaterialList = ['傀儡娃娃', '野兽图腾', '集合旗', '部落酒杯', '骨质节杖', '秘银斧']
+        if (subMaterialList.includes(itemName)) return 'bg-submaterial';
+        const normalList = ['青铜匕首', '骨锯', '石锤'];
+        if (normalList.includes(itemName)) return 'bg-normal';
+        // 基础材料：野兽骨、青铜镜、石灰岩等
+        return 'bg-base';
+    }
+
+    function showTips(name) {
+        const nameTips = document.getElementById('nameTips');
+        if (name === '随机神话I') {
+            nameTips.innerText = '【暗夜对剑、冲锋盾、尖刺铠甲、镇魂宝石】';
+        }
+        else if (name === '随机神话II') {
+            nameTips.innerText = '【神行靴、白银之刃、圣洁坠饰、奥术披风】';
+        }
+        else if (name === '随机永恒I') {
+            nameTips.innerText = '【魔龙之心、冰晶圣盾、永恒战甲、致命弩炮】';
+        }
+        else if (name === '随机永恒II') {
+            nameTips.innerText = '【神圣之耀、虚无法杖、水晶之塔、混沌沙漏】';
+        } else {
+            nameTips.innerText = '';
+        }
+    }
+
+    // 渲染默认视图（直接配方 + 完全分解基础合计）- 支持多配方Tab
+    function renderRecipes(itemName) {
+        const displayDiv = document.getElementById('recipeDisplay');
+        const resultSpan = document.getElementById('resultItemName');
+        if (!itemName) {
+            resultSpan.innerText = '未选取';
+            displayDiv.innerHTML = `<div class="empty-message">🔍 请选择一件物品</div>`;
+            return;
+        }
+        const recipes = recipesMap.get(itemName);
+        if (!recipes || recipes.length === 0) {
+            resultSpan.innerText = itemName;
+            displayDiv.innerHTML = `<div class="empty-message">“${escapeHtml(itemName)}” 是基础材料，无合成配方。</div>`;
+            return;
+        }
+        resultSpan.innerText = itemName;
+        showTips(itemName);
+        let tabsHtml = `<div class="tabs-container">`;
+        if (recipes.length > 1) {
+            tabsHtml += `<div class="tab-headers">`;
+            recipes.forEach((_, idx) => {
+                const activeClass = (idx === 0) ? 'active' : '';
+                tabsHtml += `<button class="tab-btn ${activeClass}" data-tab="tab-${idx}">配方 ${idx+1}</button>`;
+            });
+            tabsHtml += `</div>`;
+        }
+        recipes.forEach((recipe, idx) => {
+            const materialsMap = getRecipeMaterials(recipe);
+            const sortedMats = Array.from(materialsMap.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+            const fullBaseMap = getFullBaseForRecipe(recipe);
+            const sortedBase = Array.from(fullBaseMap.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+            const activeClass = (idx === 0) ? 'active' : '';
+            tabsHtml += `<div class="tab-content ${activeClass}" id="tab-${idx}">`;
+            tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>⚒️ 直接次级材料</th><th>🔢 数量</th></tr></thead><tbody>`;
+            for (const [name, qty] of sortedMats) {
+                tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+            }
+            tabsHtml += `</tbody></table></div>`;
+            tabsHtml += `<div class="full-decomp-section"><div class="decomp-header">🧬 完全分解 · 基础材料合计</div>`;
+            if (sortedBase.length === 0) {
+                tabsHtml += `<div class="base-note">该配方无需进一步分解</div>`;
+            } else {
+                tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>🌿 基础材料</th><th>🔢 总需求</th></tr></thead><tbody>`;
+                for (const [name, qty] of sortedBase) {
+                    tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+                }
+                tabsHtml += `</tbody></table></div>`;
+            }
+            tabsHtml += `</div></div>`;
+        });
+        tabsHtml += `</div>`;
+        displayDiv.innerHTML = tabsHtml;
+        bindTabEvents();
+    }
+
+    // 渲染分层视图（每层材料汇总）- 支持多配方Tab
+    function renderLayers(itemName) {
+        const displayDiv = document.getElementById('recipeDisplay');
+        const resultSpan = document.getElementById('resultItemName');
+        if (!itemName) {
+            resultSpan.innerText = '未选取';
+            displayDiv.innerHTML = `<div class="empty-message">请选择物品后点击按钮</div>`;
+            return;
+        }
+        const recipes = recipesMap.get(itemName);
+        if (!recipes || recipes.length === 0) {
+            resultSpan.innerText = itemName;
+            displayDiv.innerHTML = `<div class="empty-message">“${escapeHtml(itemName)}” 是基础材料，无法分解。</div>`;
+            return;
+        }
+        resultSpan.innerText = `${itemName} · 分层材料汇总`;
+        let tabsHtml = `<div class="tabs-container">`;
+        if (recipes.length > 1) {
+            tabsHtml += `<div class="tab-headers">`;
+            recipes.forEach((_, idx) => {
+                const activeClass = (idx === 0) ? 'active' : '';
+                tabsHtml += `<button class="tab-btn ${activeClass}" data-tab="layerTab-${idx}">配方 ${idx+1}</button>`;
+            });
+            tabsHtml += `</div>`;
+        }
+        recipes.forEach((recipe, idx) => {
+            const layers = getLayersForRecipe(recipe, itemName);
+            const activeClass = (idx === 0) ? 'active' : '';
+            tabsHtml += `<div class="tab-content ${activeClass}" id="layerTab-${idx}">`;
+            layers.forEach((layer, lvl) => {
+                if (layer.size === 0) return;
+                const sorted = Array.from(layer.entries()).sort((a,b)=>a[0].localeCompare(b[0]));
+                tabsHtml += `<div class="layer-card"><div class="layer-title">📁 第 ${lvl+1} 层材料</div>`;
+                tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>材料名称</th><th>所需数量</th></tr></thead><tbody>`;
+                for (const [name, qty] of sorted) {
+                    tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+                }
+                tabsHtml += `</tbody></table></div></div>`;
+            });
+            tabsHtml += `</div>`;
+        });
+        tabsHtml += `</div>`;
+        displayDiv.innerHTML = tabsHtml;
+        bindTabEvents();
+    }
+
+    function bindTabEvents() {
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.removeEventListener('click', handleTabClick);
+            btn.addEventListener('click', handleTabClick);
+        });
+    }
+    function handleTabClick(e) {
+        const targetTab = e.currentTarget.getAttribute('data-tab');
+        const container = e.currentTarget.closest('.tabs-container');
+        container.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const targetContent = container.querySelector(`#${targetTab}`);
+        if (targetContent) targetContent.classList.add('active');
+    }
+
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    // 自定义下拉框逻辑
+    let currentSelectedValue = "";
+    const toggleBtn = document.getElementById('toggleViewBtn');
+
+    function populateCustomSelect() {
+        const optionsList = document.getElementById('optionsList');
+        optionsList.innerHTML = '';
+        orderList.forEach(name => {
+            const div = document.createElement('div');
+            div.className = 'option-item';
+            div.classList.add('option-item', getItemColorClass(name));
+            div.textContent = name;
+            div.setAttribute('data-value', name);
+            div.addEventListener('click', (e) => {
+                e.stopPropagation();
+                selectCustomOption(name);
+                closeDropdown();
+                // 选择物品后自动显示默认配方视图
+                renderRecipes(name);
+                isLayerView = false;
+                toggleBtn.innerHTML = '✨揭示全层材料';
+            });
+            optionsList.appendChild(div);
+        });
+    }
+    function selectCustomOption(value) {
+        currentSelectedValue = value;
+        document.getElementById('selectedItemText').textContent = value;
+        document.querySelectorAll('.option-item').forEach(opt => {
+            if (opt.getAttribute('data-value') === value) opt.classList.add('selected');
+            else opt.classList.remove('selected');
+        });
+        const selectedText = document.getElementById('customSelectTrigger');
+        selectedText.className = `custom-select-trigger ${getItemColorClass(currentSelectedValue)}`;
+    }
+    function closeDropdown() {
+        document.getElementById('customSelectOptions').style.display = 'none';
+        document.getElementById('customSelectTrigger').classList.remove('open');
+    }
+    function openDropdown() {
+        document.getElementById('customSelectOptions').style.display = 'block';
+        document.getElementById('customSelectTrigger').classList.add('open');
+        const selected = document.querySelector('.option-item.selected');
+        if (selected) selected.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    }
+    function initCustomSelect() {
+        const trigger = document.getElementById('customSelectTrigger');
+        const wrapper = document.getElementById('customSelectWrapper');
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = document.getElementById('customSelectOptions').style.display === 'block';
+            isOpen ? closeDropdown() : openDropdown();
+        });
+        document.addEventListener('click', function(e) {
+            if (!wrapper.contains(e.target)) closeDropdown();
+        });
+    }
+
+    function init() {
+        populateCustomSelect();
+        initCustomSelect();
+
+        let isLayerView = false;  // 当前是否显示分层视图
+
+        function switchToRecipeView() {
+            if (currentSelectedValue) {
+                renderRecipes(currentSelectedValue);
+                isLayerView = false;
+                toggleBtn.innerHTML = '✨揭示全层材料';
+                toggleBtn.classList.remove('back-btn');
+                toggleBtn.classList.add('search-btn');
+            }
+        }
+
+        function switchToLayerView() {
+            if (currentSelectedValue) {
+                renderLayers(currentSelectedValue);
+                isLayerView = true;
+                toggleBtn.innerHTML = '↺返回配方视图';
+                toggleBtn.classList.remove('search-btn');
+                toggleBtn.classList.add('back-btn');
+            }
+        }
+
+        toggleBtn.addEventListener('click', () => {
+            if (!currentSelectedValue) {
+                document.getElementById('resultItemName').innerText = '未选取';
+                document.getElementById('recipeDisplay').innerHTML = `<div class="empty-message">请先选择物品再点击按钮</div>`;
+                return;
+            }
+            if (isLayerView) {
+                switchToRecipeView();
+            } else {
+                switchToLayerView();
+            }
+        });
+
+        renderRecipes(null);
+    }
+    window.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>

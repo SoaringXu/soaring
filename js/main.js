@@ -1,4 +1,5 @@
 urls = [
+    ["圣物计算器", "./urls/sacred-calculator.html"],
     ["创意头像", "./urls/avatar-generator.html"],
     ["记忆大师", "./memory-master.html"],
     ["俄罗斯方块", "./urls/tetris.html"],
