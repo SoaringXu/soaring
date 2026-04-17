@@ -84,16 +84,22 @@
         }
         .input-group label {
             display: block;
-            font-size: 0.7rem;
+            font-size: 0.75rem;
             text-transform: uppercase;
             letter-spacing: 1.2px;
             font-weight: 600;
             color: #cfba8a;
             margin-bottom: 0.3rem;
         }
+        .input-group a {
+            text-decoration: none;
+            color: #009dff;
+            margin-left: 0.5rem;
+        }
+
         .btn-group {
             display: flex;
-            gap: 8px;
+            gap: 20px;
             margin: 0 auto;
         }
 
@@ -322,9 +328,9 @@
         }
         footer {
             margin-top: 1.5rem;
-            font-size: 0.65rem;
+            font-size: 0.75rem;
             text-align: center;
-            color: #6c7a6b;
+            color: #c8dcc7;
             border-top: 1px solid #2e3e36;
             padding-top: 1rem;
         }
@@ -453,6 +459,11 @@
             color: #f2e8d5;
             text-align: center;
         }
+        @media (max-width: 360px) {
+            .btn-group {
+                gap: 8px;
+            }
+        }
         @media (max-width: 560px) {
             body { padding: 0.6rem; }
             .material-table th, .material-table td { font-size: 0.75rem; padding: 0.5rem 0.3rem; }
@@ -467,6 +478,9 @@
             .option-item {
                 padding: 0.3rem 1rem;
             }
+            .input-group a {
+                float: right;
+            }
             #selectedItemText {
                 margin: 0 auto;
             }
@@ -476,12 +490,14 @@
 <body>
 <div class="container">
     <h1>🧭 圣物工坊 · 全层级溯源 </h1>
-    <div class="sub">下拉选择物品自动显示直接配方+基础材料总数 | 点击「揭示全层材料」显示每层材料汇总</div>
+    <div class="sub">下拉选择物品自动显示直接配方+基础材料总数&nbsp; | &nbsp;点击「揭示全层材料」显示每层材料汇总</div>
 
     <div class="search-section">
         <div class="selector-area">
             <div class="input-group">
-                <label>📦 选择兑换物品</label>
+                <label>📦 选择兑换物品
+                    <a target="blank" href="https://mp.weixin.qq.com/s/xIxWIxFC0d02M4i4IFMJBQ">【圣物选择指南】</a>
+                </label>
                 <div class="custom-select-wrapper" id="customSelectWrapper">
                     <div class="custom-select-trigger" id="customSelectTrigger">
                         <span id="selectedItemText">- 请选择物品 -</span>
@@ -812,7 +828,7 @@
         }
 
         let itemColorCls = getItemColorClass(currentItem);
-        let resultHtml = `<h4>📋<span class="item-name ${itemColorCls}">${currentItem}</span>还需基础材料数量：</h4><ul>`;
+        let resultHtml = `<h4>📋<span class="item-name ${itemColorCls}">${currentItem}</span> 还需基础材料数量：</h4><ul>`;
         if (netNeeded.size === 0) {
             resultHtml += '<li>🎉 所有材料已充足！</li>';
         } else {
