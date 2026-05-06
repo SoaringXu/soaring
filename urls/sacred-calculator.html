@@ -101,11 +101,13 @@
             display: flex;
             gap: 20px;
             margin: 0 auto;
+            min-width: 281px;
         }
 
         .custom-select-wrapper {
             position: relative;
             width: 100%;
+            max-width: 1024px;
             user-select: none;
         }
 
@@ -364,6 +366,57 @@
             color: #2c3e2f;
         }
 
+        /* 可点击的物品名称 */
+        .clickable-item {
+            cursor: pointer;
+            transition: opacity 0.1s;
+        }
+        .clickable-item:active {
+            opacity: 0.7;
+        }
+        /* 物品详情弹窗 */
+        .detail-dialog-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2100;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .detail-dialog-container {
+            background: #1e282c;
+            border-radius: 1.5rem;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border: 1px solid #dbb87c;
+        }
+        .detail-dialog-header {
+            padding: 1rem;
+            border-bottom: 1px solid #2f423c;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .detail-dialog-header h3 {
+            color: #efdbac;
+        }
+        .detail-dialog-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #cdba88;
+        }
+        .detail-dialog-body {
+            padding: 1rem;
+        }
+
         .item-name {
             padding: 0.1rem 0.2rem;
             border-radius: 0.3rem;
@@ -542,6 +595,19 @@
     </div>
 </div>
 
+<!-- 物品配方详情弹窗 -->
+<div id="itemDetailDialog" class="detail-dialog-overlay" style="display: none;">
+    <div class="detail-dialog-container">
+        <div class="detail-dialog-header">
+            <h3 id="detailDialogTitle">物品配方详情</h3>
+            <button class="detail-dialog-close">&times;</button>
+        </div>
+        <div id="detailDialogBody" class="detail-dialog-body">
+            <!-- 动态内容 -->
+        </div>
+    </div>
+</div>
+
 <script>
     // ==================== CSV 数据解析 ====================
     const csvRaw = `,暗夜对剑,冲锋盾,尖刺铠甲,镇魂宝石,神行靴,白银之刃,圣洁坠饰,奥术披风,阔剑,小圆盾,龙纹印,纪念石碑,红宝石杯,治愈之心,潮汐之刃,秘法钥匙,傀儡娃娃,野兽图腾,集合旗,部落酒杯,骨质节杖,秘银斧,青铜匕首,骨锯,石锤,野兽骨,青铜镜,石灰岩
@@ -578,6 +644,9 @@
 青铜匕首,,,,,,,,,,,,,,,,,,,,,,,,,,2,4,
 骨锯,,,,,,,,,,,,,,,,,,,,,,,,,,4,,2
 石锤,,,,,,,,,,,,,,,,,,,,,,,,,,,2,4`;
+
+    window.showItemDetail = showItemDetail;
+    window.closeItemDetailDialog = closeItemDetailDialog;
 
     function parseCraftingData(csvStr) {
         const lines = csvStr.split(/\r?\n/);
@@ -856,6 +925,14 @@
     let currentTabRecipeIndex = 0;
     let isLayerView = false;
 
+    function genTableTrHtml(tabsHtml = '', name, qty) {
+        const isClickable = !name.startsWith('随机永恒') && !name.startsWith('随机神话') && recipesMap.has(name);
+        const clickClass = isClickable ? 'clickable-item' : '';
+        const onclickAttr = isClickable ? ` onclick="showItemDetail('${escapeHtml(name).replace(/'/g, "\\'")}')" ` : '';
+        tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)} ${clickClass}" ${onclickAttr}>${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+        return tabsHtml;
+    }
+
     function renderRecipes(itemName) {
         currentItem = itemName;
         currentTabRecipeIndex = 0;
@@ -893,13 +970,17 @@
             const activeClass = (idx === 0) ? 'active' : '';
             tabsHtml += `<div class="tab-content ${activeClass}" id="tab-${idx}">`;
             tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>⚒️ 直接次级材料</th><th>🔢 数量</th></tr></thead><tbody>`;
-            for (const [name, qty] of sortedMats) tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+            for (const [name, qty] of sortedMats) {
+                tabsHtml = genTableTrHtml(tabsHtml, name, qty);
+            }
             tabsHtml += `</tbody></table></div>`;
             tabsHtml += `<div class="full-decomp-section"><div class="decomp-header">🧬 完全分解 · 基础材料合计</div>`;
             if (sortedBase.length === 0) tabsHtml += `<div>该配方无需进一步分解</div>`;
             else {
                 tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>🌿 基础材料</th><th>🔢 总需求</th></tr></thead><tbody>`;
-                for (const [name, qty] of sortedBase) tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+                for (const [name, qty] of sortedBase) {
+                    tabsHtml = genTableTrHtml(tabsHtml, name, qty);
+                }
                 tabsHtml += `</tbody></table></div>`;
             }
             tabsHtml += `</div></div>`;
@@ -913,7 +994,7 @@
         currentItem = itemName;
         currentTabRecipeIndex = 0;
         isLayerView = true;
-        document.getElementById('toggleViewBtn').innerHTML = '↺ 返回配方视图';
+        document.getElementById('toggleViewBtn').innerHTML = '↺返回配方视图';
         const displayDiv = document.getElementById('recipeDisplay');
         const resultSpan = document.getElementById('resultItemName');
         if (!itemName) {
@@ -946,7 +1027,9 @@
                 const sorted = sortByOriginalOrder(Array.from(layer.entries()));
                 tabsHtml += `<div class="layer-card"><div class="layer-title">📁 第 ${lvl+1} 层材料</div>`;
                 tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>材料名称</th><th>所需数量</th></tr></thead><tbody>`;
-                for (const [name, qty] of sorted) tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+                for (const [name, qty] of sorted) {
+                    tabsHtml = genTableTrHtml(tabsHtml, name, qty);
+                }
                 tabsHtml += `</tbody></table></div></div>`;
             });
             tabsHtml += `</div>`;
@@ -1029,6 +1112,75 @@
         document.addEventListener('click', (e) => { if (!wrapper.contains(e.target)) closeDropdown(); });
     }
 
+    // 显示物品配方层级（独立弹窗）
+    function showItemDetail(itemName) {
+        if (!itemName) return;
+        // 随机物品不弹出（可选，也可以弹出但不过滤）
+        if (itemName.startsWith('随机永恒') || itemName.startsWith('随机神话')) {
+            // 可以提示或直接返回
+            return;
+        }
+        const recipes = recipesMap.get(itemName);
+        if (!recipes || recipes.length === 0) {
+            alert(`“${itemName}” 是基础材料，无合成配方。`);
+            return;
+        }
+        const dialog = document.getElementById('itemDetailDialog');
+        const titleSpan = document.getElementById('detailDialogTitle');
+        titleSpan.textContent = `${itemName} · 配方层级`;
+        const body = document.getElementById('detailDialogBody');
+        
+        // 构建分层材料视图（类似 renderLayers 但只针对该物品）
+        let tabsHtml = `<div class="tabs-container">`;
+        if (recipes.length > 1) {
+            tabsHtml += `<div class="tab-headers">`;
+            recipes.forEach((_, idx) => {
+                const activeClass = (idx === 0) ? 'active' : '';
+                tabsHtml += `<button class="tab-btn ${activeClass}" data-detail-tab="detailTab-${idx}">配方 ${idx+1}</button>`;
+            });
+            tabsHtml += `</div>`;
+        }
+        recipes.forEach((recipe, idx) => {
+            const layers = getLayersForRecipe(recipe);
+            const activeClass = (idx === 0) ? 'active' : '';
+            tabsHtml += `<div class="tab-content ${activeClass}" id="detailTab-${idx}">`;
+            layers.forEach((layer, lvl) => {
+                if (layer.size === 0) return;
+                const sorted = sortByOriginalOrder(Array.from(layer.entries()));
+                tabsHtml += `<div class="layer-card"><div class="layer-title">📁 第 ${lvl+1} 层材料</div>`;
+                tabsHtml += `<div class="table-wrapper"><table class="material-table"><thead><tr><th>材料名称</th><th>所需数量</th></tr></thead><tbody>`;
+                for (const [name, qty] of sorted) {
+                    tabsHtml += `<tr><td><span class="item-name ${getItemColorClass(name)}">${escapeHtml(name)}</span></td><td><span class="qty-num">${qty}</span> 个</td></tr>`;
+                }
+                tabsHtml += `</tbody></table></div></div>`;
+            });
+            tabsHtml += `</div>`;
+        });
+        tabsHtml += `</div>`;
+        body.innerHTML = tabsHtml;
+        dialog.style.display = 'flex';
+        
+        // 绑定弹窗内的 Tab 事件
+        document.querySelectorAll('#itemDetailDialog .tab-btn').forEach(btn => {
+            btn.removeEventListener('click', handleDetailTabClick);
+            btn.addEventListener('click', handleDetailTabClick);
+        });
+    }
+
+    function handleDetailTabClick(e) {
+        const targetTab = e.currentTarget.getAttribute('data-detail-tab');
+        const container = e.currentTarget.closest('.detail-dialog-body');
+        container.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+        container.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        const targetContent = container.querySelector(`#${targetTab}`);
+        if (targetContent) targetContent.classList.add('active');
+    }
+
+    function closeItemDetailDialog() {
+        document.getElementById('itemDetailDialog').style.display = 'none';
+    }
+
     function escapeHtml(str) { return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
 
     // 初始化
@@ -1075,6 +1227,10 @@
         document.getElementById('calcCancelBtn').addEventListener('click', closeDialog);
         document.getElementById('calcResetBtn').addEventListener('click', resetDialogInputs);
         document.getElementById('materialDialog').addEventListener('click', (e) => { if (e.target === document.getElementById('materialDialog')) closeDialog(); });
+        document.querySelector('.detail-dialog-close').addEventListener('click', closeItemDetailDialog);
+        document.getElementById('itemDetailDialog').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('itemDetailDialog')) closeItemDetailDialog();
+        });
         renderRecipes(null);
     }
     window.addEventListener('DOMContentLoaded', init);
